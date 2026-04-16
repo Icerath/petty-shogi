@@ -1,0 +1,215 @@
+use std::{
+    fmt::{self, Write as _},
+    ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, Not},
+};
+
+use crate::{
+    bitboard,
+    side::Side,
+    square::{Rank, Square},
+};
+
+#[derive(Default, Clone, Copy, PartialEq, Eq)]
+pub struct Bitboard(u128);
+
+impl Bitboard {
+    pub const EMPTY: Self = Self(0);
+    pub const FULL: Self = Self(u128::MAX >> (128 - 81));
+
+    #[must_use]
+    pub const fn from_square(sq: Square) -> Self {
+        Self(1u128 << sq as u8)
+    }
+
+    #[must_use]
+    pub const fn from_rank(rank: Rank) -> Self {
+        let rank0 = bitboard! {
+            1 1 1 1 1 1 1 1 1
+            0 0 0 0 0 0 0 0 0
+            0 0 0 0 0 0 0 0 0
+            0 0 0 0 0 0 0 0 0
+            0 0 0 0 0 0 0 0 0
+            0 0 0 0 0 0 0 0 0
+            0 0 0 0 0 0 0 0 0
+            0 0 0 0 0 0 0 0 0
+            0 0 0 0 0 0 0 0 0
+        };
+        Self(rank0.0 << (rank as u8 * 9))
+    }
+
+    #[must_use]
+    pub const fn count(self) -> u32 {
+        self.0.count_ones()
+    }
+
+    pub fn for_each(mut self, mut f: impl FnMut(Square)) {
+        while let Some(next) = self.bitscan() {
+            f(next);
+            self.bitscan_pop();
+        }
+    }
+
+    #[must_use]
+    pub const fn bitscan(self) -> Option<Square> {
+        if self.is_empty() { None } else { Some(unsafe { self.bitscan_unchecked() }) }
+    }
+
+    /// # Safety
+    /// `self.is_empty()` must be false
+    #[must_use]
+    pub const unsafe fn bitscan_unchecked(self) -> Square {
+        unsafe { Square::from_int_unchecked(self.0.trailing_zeros() as u8) }
+    }
+
+    pub const fn bitscan_pop(&mut self) {
+        self.0 &= self.0 - 1;
+    }
+
+    #[must_use]
+    pub const fn is_empty(self) -> bool {
+        self.0 == 0
+    }
+
+    pub fn contains(self, sq: Square) -> bool {
+        !(self & sq.mask()).is_empty()
+    }
+
+    pub fn remove(&mut self, sq: Square) {
+        *self &= !sq.mask();
+    }
+
+    pub const fn insert(&mut self, sq: Square) {
+        self.0 |= sq.mask().0;
+    }
+
+    #[must_use]
+    /// slow, should not be used in hot path
+    pub const fn flip(mut self) -> Self {
+        let mut new = Bitboard::EMPTY;
+        while let Some(sq) = self.bitscan() {
+            new.insert(sq.flip());
+            self.bitscan_pop();
+        }
+        new
+    }
+
+    pub const fn from_bits(bits: [bool; 81]) -> Self {
+        let mut bb = Bitboard::EMPTY;
+        let mut i = 0;
+        while i < 81 {
+            if bits[i as usize] {
+                bb.insert(Square::from_int(i).unwrap());
+            }
+            i += 1;
+        }
+        bb
+    }
+
+    pub const fn shift_forward(self, side: Side) -> Self {
+        match side {
+            Side::Sente => self.shift_up(),
+            Side::Gote => self.shift_down(),
+        }
+    }
+
+    pub const fn shift_back(self, side: Side) -> Self {
+        match side {
+            Side::Sente => self.shift_down(),
+            Side::Gote => self.shift_up(),
+        }
+    }
+
+    pub const fn shift_up(self) -> Self {
+        Self((self.0 << 9) & Self::FULL.0)
+    }
+
+    pub const fn shift_down(self) -> Self {
+        Self(self.0 >> 9)
+    }
+
+    // FIXME: replace with const traits
+    pub const fn bitand(self, rhs: Bitboard) -> Self {
+        Self(self.0 & rhs.0)
+    }
+}
+
+impl BitOr for Bitboard {
+    type Output = Self;
+
+    fn bitor(self, rhs: Self) -> Self::Output {
+        Self(self.0 | rhs.0)
+    }
+}
+
+impl BitOrAssign for Bitboard {
+    fn bitor_assign(&mut self, rhs: Self) {
+        *self = *self | rhs
+    }
+}
+
+impl BitAnd for Bitboard {
+    type Output = Self;
+
+    fn bitand(self, rhs: Self) -> Self::Output {
+        Self(self.0 & rhs.0)
+    }
+}
+
+impl BitAndAssign for Bitboard {
+    fn bitand_assign(&mut self, rhs: Self) {
+        *self = *self & rhs;
+    }
+}
+
+impl Not for Bitboard {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        Self(!self.0)
+    }
+}
+
+impl fmt::Debug for Bitboard {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let int = self.0;
+        for i in 0..81 {
+            let is_present = (int & (1 << i)) >> i == 1;
+            f.write_char(if is_present { '1' } else { '0' })?;
+        }
+        Ok(())
+    }
+}
+
+#[macro_export]
+macro_rules! _bit {
+    (0) => {
+        false
+    };
+    (1) => {
+        true
+    };
+}
+
+#[macro_export]
+macro_rules! bitboard {
+    {$($bit:tt)*} => {
+        const { $crate::bitboard::Bitboard::from_bits([$($crate::_bit!($bit),)*]) }
+    };
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{bitboard::Bitboard, square::Square};
+
+    #[test]
+    fn full81() {
+        assert_eq!(Bitboard::FULL.count(), 81);
+    }
+
+    #[test]
+    fn flip() {
+        assert_eq!(Bitboard::EMPTY, Bitboard::EMPTY);
+        assert_eq!(Bitboard::FULL, Bitboard::FULL);
+        assert_eq!(Square::A1.mask().flip(), Square::I1.mask());
+    }
+}

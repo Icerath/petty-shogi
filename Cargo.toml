@@ -1,0 +1,10 @@
+[package]
+name = "petty-shogi"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+atoi = "2.0.0"
+
+[profile.dev]
+opt-level = 3

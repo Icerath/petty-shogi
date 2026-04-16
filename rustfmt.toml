@@ -1,0 +1,5 @@
+use_small_heuristics = "Max"
+reorder_impl_items = true
+reorder_imports = true
+group_imports = "StdExternalCrate"
+imports_granularity = "Crate"
