@@ -180,6 +180,18 @@ impl fmt::Debug for Bitboard {
     }
 }
 
+impl fmt::Display for Bitboard {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for sq in Square::ALL {
+            write!(f, "{} ", self.contains(sq) as u8)?;
+            if sq.file().right().is_none() {
+                writeln!(f)?;
+            }
+        }
+        Ok(())
+    }
+}
+
 #[macro_export]
 macro_rules! _bit {
     (0) => {

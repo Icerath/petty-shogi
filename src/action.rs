@@ -2,6 +2,7 @@ use std::fmt;
 
 use crate::{piece::Piece, square::Square};
 
+#[derive(Clone, Copy)]
 pub enum Action {
     Move { from: Square, to: Square, promoted: bool },
     Drop { piece: Piece, to: Square },

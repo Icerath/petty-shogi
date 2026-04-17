@@ -15,7 +15,7 @@ impl Receiver for Vec<Action> {
     }
 }
 
-impl Receiver for usize {
+impl Receiver for u64 {
     fn recv(&mut self, _: Action) {
         *self += 1;
     }
@@ -28,7 +28,47 @@ impl<F: FnMut(Action)> Receiver for F {
 }
 
 impl Board {
-    pub fn pseudolegal_moves(&mut self, r: &mut impl Receiver) {
+    pub fn is_legal(&self, action: Action) -> bool {
+        let mut board = self.clone();
+        board.play(action);
+        let Some(king_square) = (self[PieceKind::King] & self[self.active]).bitscan() else {
+            return false;
+        };
+        !self.is_square_attacked(king_square, self.active)
+    }
+
+    #[must_use]
+    pub fn is_square_attacked(&self, sq: Square, side: Side) -> bool {
+        let attacker = !side;
+        let attackee = side;
+        let occupancy = self.pieces.all();
+        macro_rules! check {
+            ($($bb:expr),* $(,)?) => {
+                $(!($bb & self[attacker]).is_empty())||*
+            };
+        }
+        check! {
+            (self[PieceKind::Pawn] & !self.pieces.promoted).shift_forward(attackee),
+            slide(sq, occupancy, 0, attackee.forward()) & self[PieceKind::Lance] & !self.pieces.promoted,
+            KNIGHT_LUT[attackee as usize][sq as usize] & self[PieceKind::Knight] & !self.pieces.promoted,
+            SILVER_LUT[attackee as usize][sq as usize] & self[PieceKind::Silver] & !self.pieces.promoted,
+            GOLD_LUT[attackee as usize][sq as usize] & self.gold_move_pieces(),
+            bishop_bb(occupancy, sq) & (self[PieceKind::Bishop] | (self[PieceKind::Rook] & self.pieces.promoted)),
+            rook_bb(occupancy, sq) & (self[PieceKind::Rook] | (self[PieceKind::Bishop] & self.pieces.promoted)),
+            KING_LUT[sq as usize] & self[PieceKind::King],
+        }
+    }
+
+    pub fn legal_moves<'a, R: Receiver>(&self, r: &'a mut R) -> &'a mut R {
+        self.pseudolegal_moves(&mut |mov| {
+            if self.is_legal(mov) {
+                r.recv(mov)
+            }
+        });
+        r
+    }
+
+    pub fn pseudolegal_moves<'a, R: Receiver>(&self, r: &'a mut R) -> &'a mut R {
         self.pawn_moves(r);
         self.lance_moves(r);
         self.knight_moves(r);
@@ -37,9 +77,10 @@ impl Board {
         self.bishop_moves(r);
         self.rook_moves(r);
         self.king_moves(r);
+        r
     }
 
-    fn pawn_moves(&mut self, r: &mut impl Receiver) {
+    fn pawn_moves(&self, r: &mut impl Receiver) {
         const SENTE_PROMOTE: Bitboard = bitboard! {
             0 0 0 0 0 0 0 0 0
             1 1 1 1 1 1 1 1 1
@@ -87,44 +128,47 @@ impl Board {
         }
     }
 
-    fn lance_moves(&mut self, r: &mut impl Receiver) {
+    fn lance_moves(&self, r: &mut impl Receiver) {
         (self[PieceKind::Lance] & !self.pieces.promoted & self[self.active])
             .for_each(|sq| lance(self, sq, r));
     }
 
-    fn knight_moves(&mut self, r: &mut impl Receiver) {
+    fn knight_moves(&self, r: &mut impl Receiver) {
         (self[PieceKind::Knight] & !self.pieces.promoted & self[self.active])
             .for_each(|sq| knight(self, sq, r));
     }
 
-    fn silver_moves(&mut self, r: &mut impl Receiver) {
+    fn silver_moves(&self, r: &mut impl Receiver) {
         (self[PieceKind::Silver] & !self.pieces.promoted & self[self.active])
             .for_each(|sq| silver(self, sq, r));
     }
 
-    fn gold_moves(&mut self, r: &mut impl Receiver) {
+    fn gold_move_pieces(&self) -> Bitboard {
         let promoted_to_gold = self[PieceKind::Pawn]
             | self[PieceKind::Lance]
             | self[PieceKind::Knight]
             | self[PieceKind::Silver];
-        (((promoted_to_gold & self.pieces.promoted) | self[PieceKind::Gold]) & self[self.active])
-            .for_each(|sq| gold(self, sq, r));
+        (promoted_to_gold & self.pieces.promoted) | self[PieceKind::Gold]
     }
 
-    fn bishop_moves(&mut self, r: &mut impl Receiver) {
+    fn gold_moves(&self, r: &mut impl Receiver) {
+        (self.gold_move_pieces() & self[self.active]).for_each(|sq| gold(self, sq, r));
+    }
+
+    fn bishop_moves(&self, r: &mut impl Receiver) {
         (self[PieceKind::Bishop] & self[self.active]).for_each(|sq| bishop::<true>(self, sq, r));
         (self[PieceKind::Rook] & self.pieces.promoted & self[self.active])
             .for_each(|sq| bishop::<false>(self, sq, r));
     }
 
     #[inline(never)]
-    fn rook_moves(&mut self, r: &mut impl Receiver) {
+    fn rook_moves(&self, r: &mut impl Receiver) {
         (self[PieceKind::Rook] & self[self.active]).for_each(|sq| rook::<true>(self, sq, r));
         (self[PieceKind::Bishop] & self.pieces.promoted & self[self.active])
             .for_each(|sq| rook::<false>(self, sq, r));
     }
 
-    fn king_moves(&mut self, r: &mut impl Receiver) {
+    fn king_moves(&self, r: &mut impl Receiver) {
         (self[PieceKind::King] & self[self.active]).for_each(|sq| king(self, sq, r));
     }
 }
@@ -157,12 +201,7 @@ fn gold(board: &Board, sq: Square, r: &mut impl Receiver) {
 }
 
 fn bishop<const PROMOTE: bool>(board: &Board, sq: Square, r: &mut impl Receiver) {
-    let mut bb = Bitboard::EMPTY;
-    let occupancy = board.pieces.all();
-    for (h, v) in [(1, 1), (1, -1), (-1, 1), (-1, -1)] {
-        bb |= slide(sq, occupancy, h, v)
-    }
-    bb &= !board[board.active];
+    let bb = bishop_bb(board.pieces.all(), sq) & !board[board.active];
     bb.for_each(|to| r.recv(Action::Move { from: sq, to, promoted: false }));
     if PROMOTE {
         (bb & board.active.promotion_zone())
@@ -170,19 +209,31 @@ fn bishop<const PROMOTE: bool>(board: &Board, sq: Square, r: &mut impl Receiver)
     }
 }
 
-fn rook<const PROMOTE: bool>(board: &Board, sq: Square, r: &mut impl Receiver) {
+fn bishop_bb(occupancy: Bitboard, sq: Square) -> Bitboard {
     let mut bb = Bitboard::EMPTY;
-    let occupancy = board.pieces.all();
-    for (h, v) in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
+    for (h, v) in [(1, 1), (1, -1), (-1, 1), (-1, -1)] {
         bb |= slide(sq, occupancy, h, v)
     }
-    bb &= !board[board.active];
+    bb
+}
+
+fn rook<const PROMOTE: bool>(board: &Board, sq: Square, r: &mut impl Receiver) {
+    let bb = rook_bb(board.pieces.all(), sq) & !board[board.active];
     bb.for_each(|to| r.recv(Action::Move { from: sq, to, promoted: false }));
     if PROMOTE {
         (bb & board.active.promotion_zone())
             .for_each(|to| r.recv(Action::Move { from: sq, to, promoted: true }));
     }
 }
+
+fn rook_bb(occupancy: Bitboard, sq: Square) -> Bitboard {
+    let mut bb = Bitboard::EMPTY;
+    for (h, v) in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
+        bb |= slide(sq, occupancy, h, v)
+    }
+    bb
+}
+
 fn king(board: &Board, sq: Square, r: &mut impl Receiver) {
     (KING_LUT[sq as usize] & !board[board.active]).for_each(|to| {
         r.recv(Action::Move { from: sq, to, promoted: false });

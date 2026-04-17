@@ -1,14 +1,12 @@
 use crate::board::Board;
 
 impl Board {
-    pub fn perft(&mut self, depth: u32) -> u32 {
+    pub fn perft(&mut self, depth: u64) -> u64 {
         if depth == 1 {
-            let mut count = 0;
-            self.pseudolegal_moves(&mut count);
-            return count as u32;
+            return *self.legal_moves(&mut 0);
         }
         let mut sum = 0;
-        self.clone().pseudolegal_moves(&mut |mov| {
+        self.clone().legal_moves(&mut |mov| {
             let copy = self.clone();
             self.play(mov);
             sum += self.perft(depth - 1);

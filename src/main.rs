@@ -14,8 +14,8 @@ mod square;
 
 fn main() {
     let start = Instant::now();
-    println!("{}", Board::start_pos().perft(6));
+    println!("{}", Board::start_pos().perft(5));
     println!("{:?}", start.elapsed());
-    Board::start_pos().pseudolegal_moves(&mut |m| println!("{m}"));
+    Board::start_pos().legal_moves(&mut |m| println!("{m}"));
     println!("{}", Board::start_pos());
 }
