@@ -1,6 +1,8 @@
 use std::time::Instant;
 
+use action::Action;
 use board::Board;
+use square::Square;
 
 mod action;
 mod bitboard;

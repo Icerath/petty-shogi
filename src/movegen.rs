@@ -48,27 +48,26 @@ impl Board {
 
         let mut board = self.clone();
         board.play(action);
-        let Some(king_square) = (self[PieceKind::King] & self[self.active]).bitscan() else {
+        let Some(king_square) = (board[PieceKind::King] & board[self.active]).bitscan() else {
             return false;
         };
         !self.is_square_attacked(king_square, self.active)
     }
 
     #[must_use]
-    pub fn is_square_attacked(&self, sq: Square, attackee: Side) -> bool {
-        let attacker = !attackee;
+    pub fn is_square_attacked(&self, sq: Square, side: Side) -> bool {
         let occupancy = self.pieces.all();
         macro_rules! check {
             ($($bb:expr),* $(,)?) => {
-                $(!($bb & self[attacker]).is_empty())||*
+                $(!($bb & self[!side]).is_empty())||*
             };
         }
         check! {
-            (self[PieceKind::Pawn] & !self.pieces.promoted).shift_forward(attackee),
-            slide(sq, occupancy, 0, attackee.forward()) & self[PieceKind::Lance] & !self.pieces.promoted,
-            KNIGHT_LUT[attackee as usize][sq as usize] & self[PieceKind::Knight] & !self.pieces.promoted,
-            SILVER_LUT[attackee as usize][sq as usize] & self[PieceKind::Silver] & !self.pieces.promoted,
-            GOLD_LUT[attackee as usize][sq as usize] & self.gold_move_pieces(),
+            (self[PieceKind::Pawn] & !self.pieces.promoted).shift_forward(side),
+            slide(sq, occupancy, 0, side.forward()) & self[PieceKind::Lance] & !self.pieces.promoted,
+            KNIGHT_LUT[side as usize][sq as usize] & self[PieceKind::Knight] & !self.pieces.promoted,
+            SILVER_LUT[side as usize][sq as usize] & self[PieceKind::Silver] & !self.pieces.promoted,
+            GOLD_LUT[side as usize][sq as usize] & self.gold_move_pieces(),
             bishop_bb(occupancy, sq) & (self[PieceKind::Bishop] | (self[PieceKind::Rook] & self.pieces.promoted)),
             rook_bb(occupancy, sq) & (self[PieceKind::Rook] | (self[PieceKind::Bishop] & self.pieces.promoted)),
             KING_LUT[sq as usize] & self[PieceKind::King],
