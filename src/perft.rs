@@ -2,6 +2,9 @@ use crate::board::Board;
 
 impl Board {
     pub fn perft(&mut self, depth: u64) -> u64 {
+        if depth == 0 {
+            return 1;
+        }
         if depth == 1 {
             return *self.legal_moves(&mut 0);
         }
@@ -10,6 +13,19 @@ impl Board {
             let copy = self.clone();
             self.play(mov);
             sum += self.perft(depth - 1);
+            *self = copy;
+        });
+        sum
+    }
+
+    pub fn print_perft(&mut self, depth: u64) -> u64 {
+        let mut sum = 0;
+        self.clone().legal_moves(&mut |mov| {
+            let copy = self.clone();
+            self.play(mov);
+            let positions = self.perft(depth - 1);
+            println!("{mov}: {positions}");
+            sum += positions;
             *self = copy;
         });
         sum
