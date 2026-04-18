@@ -2,7 +2,12 @@
 use crate::bitboard;
 
 use crate::{
-    action::Action, bitboard::Bitboard, board::Board, piece::PieceKind, side::Side, square::Square,
+    action::Action,
+    bitboard::Bitboard,
+    board::Board,
+    piece::{Piece, PieceKind},
+    side::Side,
+    square::Square,
 };
 
 pub trait Receiver {
@@ -29,6 +34,18 @@ impl<F: FnMut(Action)> Receiver for F {
 
 impl Board {
     pub fn is_legal(&self, action: Action) -> bool {
+        // check for pawn drop mate
+        if let Action::Drop { piece, to } = action
+            && piece.kind() == PieceKind::Pawn
+            && (self[PieceKind::King] & self[!self.active])
+                .contains(to.forward(self.active).unwrap())
+        {
+            let king = (self[PieceKind::King] & self[!self.active]).bitscan().unwrap();
+            if self.is_square_attacked(king, self.active) {
+                return false;
+            }
+        }
+
         let mut board = self.clone();
         board.play(action);
         let Some(king_square) = (self[PieceKind::King] & self[self.active]).bitscan() else {
@@ -38,9 +55,8 @@ impl Board {
     }
 
     #[must_use]
-    pub fn is_square_attacked(&self, sq: Square, side: Side) -> bool {
-        let attacker = !side;
-        let attackee = side;
+    pub fn is_square_attacked(&self, sq: Square, attackee: Side) -> bool {
+        let attacker = !attackee;
         let occupancy = self.pieces.all();
         macro_rules! check {
             ($($bb:expr),* $(,)?) => {
@@ -77,7 +93,45 @@ impl Board {
         self.bishop_moves(r);
         self.rook_moves(r);
         self.king_moves(r);
+        self.drop_moves(r);
         r
+    }
+
+    fn drop_moves(&self, r: &mut impl Receiver) {
+        let empty_squares = !self.pieces.all();
+
+        macro_rules! drop {
+            ($piece:expr, $to:expr) => {
+                r.recv(Action::Drop { piece: Piece::new(self.active, $piece, false), to: $to })
+            };
+        }
+
+        // pawns
+        if self.hands[self.active as usize][PieceKind::Pawn as usize] > 0 {
+            let mut busy_files = Bitboard::EMPTY;
+            (self[PieceKind::Pawn] & !self.pieces.promoted & self[self.active]).for_each(|sq| {
+                busy_files |= sq.file().mask();
+            });
+            (empty_squares & !self.active.end_rank().mask() & !busy_files)
+                .for_each(|sq| drop!(PieceKind::Pawn, sq));
+        }
+        // lances
+        if self.hands[self.active as usize][PieceKind::Lance as usize] > 0 {
+            (empty_squares & !self.active.end_rank().mask())
+                .for_each(|sq| drop!(PieceKind::Lance, sq));
+        }
+        // knights
+        if self.hands[self.active as usize][PieceKind::Lance as usize] > 0 {
+            (empty_squares & !self.active.promotion_zone().shift_forward(self.active))
+                .for_each(|sq| drop!(PieceKind::Knight, sq));
+        }
+        // rest
+        for &piece in &PieceKind::ALL[PieceKind::Silver as usize..PieceKind::King as usize] {
+            if self.hands[self.active as usize][piece as usize] == 0 {
+                continue;
+            }
+            empty_squares.for_each(|sq| drop!(piece, sq));
+        }
     }
 
     fn pawn_moves(&self, r: &mut impl Receiver) {

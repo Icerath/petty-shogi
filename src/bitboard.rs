@@ -6,7 +6,7 @@ use std::{
 use crate::{
     bitboard,
     side::Side,
-    square::{Rank, Square},
+    square::{File, Rank, Square},
 };
 
 #[derive(Default, Clone, Copy, PartialEq, Eq)]
@@ -23,7 +23,7 @@ impl Bitboard {
 
     #[must_use]
     pub const fn from_rank(rank: Rank) -> Self {
-        let rank0 = bitboard! {
+        const RANK0: Bitboard = bitboard! {
             1 1 1 1 1 1 1 1 1
             0 0 0 0 0 0 0 0 0
             0 0 0 0 0 0 0 0 0
@@ -34,7 +34,23 @@ impl Bitboard {
             0 0 0 0 0 0 0 0 0
             0 0 0 0 0 0 0 0 0
         };
-        Self(rank0.0 << (rank as u8 * 9))
+        Self(RANK0.0 << (rank as u8 * 9))
+    }
+
+    #[must_use]
+    pub const fn from_file(file: File) -> Self {
+        const FILE0: Bitboard = bitboard! {
+            1 0 0 0 0 0 0 0 0
+            1 0 0 0 0 0 0 0 0
+            1 0 0 0 0 0 0 0 0
+            1 0 0 0 0 0 0 0 0
+            1 0 0 0 0 0 0 0 0
+            1 0 0 0 0 0 0 0 0
+            1 0 0 0 0 0 0 0 0
+            1 0 0 0 0 0 0 0 0
+            1 0 0 0 0 0 0 0 0
+        };
+        Self(FILE0.0 << file as u8)
     }
 
     #[must_use]
@@ -165,7 +181,7 @@ impl Not for Bitboard {
     type Output = Self;
 
     fn not(self) -> Self::Output {
-        Self(!self.0)
+        Self(!self.0) & Self::FULL
     }
 }
 

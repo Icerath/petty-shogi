@@ -24,12 +24,17 @@ pub struct Board {
 impl Board {
     pub fn play(&mut self, action: Action) {
         match action {
-            Action::Drop { piece, to } => {
-                self.hands[self.active as usize][piece.kind() as usize] -= 1;
-                self[piece.kind()].insert(to);
-            }
+            Action::Drop { piece, to } => self.drop_move(piece, to),
             Action::Move { from, to, promoted } => self.make_move(from, to, promoted),
         }
+    }
+
+    fn drop_move(&mut self, piece: Piece, to: Square) {
+        debug_assert_eq!(piece.side(), self.active);
+        debug_assert!(!piece.promoted());
+
+        self.hands[self.active as usize][piece.kind() as usize] -= 1;
+        self.insert_piece(piece, to);
     }
 
     fn make_move(&mut self, from: Square, to: Square, promoted: bool) {

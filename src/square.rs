@@ -174,6 +174,10 @@ impl File {
     pub const fn right(self) -> Option<Self> {
         if self as u8 == 8 { None } else { unsafe { std::mem::transmute(self as u8 + 1) } }
     }
+
+    pub const fn mask(self) -> Bitboard {
+        Bitboard::from_file(self)
+    }
 }
 
 #[expect(clippy::missing_transmute_annotations)]
