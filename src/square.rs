@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::{Bitboard, Side};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[rustfmt::skip]
 pub enum Square {
     A9, A8, A7, A6, A5, A4, A3, A2, A1,
@@ -16,13 +16,13 @@ pub enum Square {
     I9, I8, I7, I6, I5, I4, I3, I2, I1,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[rustfmt::skip]
 pub enum File {
     _9, _8, _7, _6, _5, _4, _3, _2, _1,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[rustfmt::skip]
 pub enum Rank {
     A, B, C, D, E, F, G, H, I,
@@ -146,6 +146,12 @@ impl Square {
         let rank @ 0..9 = (self.rank() as i8) + rank else { return None };
         Some(unsafe { Self::from_int_unchecked(file as u8 + rank as u8 * 9) })
     }
+
+    pub fn parse(str: [u8; 2]) -> Option<Self> {
+        let file = File::try_from_symbol(str[0])?;
+        let rank = Rank::try_from_symbol(str[1])?;
+        Some(Self::new(file, rank))
+    }
 }
 
 impl fmt::Display for Square {
@@ -176,6 +182,13 @@ impl File {
 
     pub const fn mask(self) -> Bitboard {
         Bitboard::from_file(self)
+    }
+
+    pub fn try_from_symbol(symbol: u8) -> Option<Self> {
+        match symbol {
+            b'1'..=b'9' => Some(unsafe { std::mem::transmute(8 - (symbol - b'1')) }),
+            _ => None,
+        }
     }
 }
 
@@ -240,10 +253,28 @@ impl Rank {
     pub const fn mask(self) -> Bitboard {
         Bitboard::from_rank(self)
     }
+
+    pub fn try_from_symbol(symbol: u8) -> Option<Self> {
+        match symbol {
+            b'a'..=b'i' => Some(unsafe { std::mem::transmute(symbol - b'a') }),
+            _ => None,
+        }
+    }
 }
 
 impl fmt::Display for Rank {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         (Self::SYMBOLS[*self as usize] as char).fmt(f)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn parse() {
+        assert_eq!(Rank::try_from_symbol(b'i'), Some(Rank::I));
+        assert_eq!(File::try_from_symbol(b'1'), Some(File::_1));
+        assert_eq!(Square::parse([b'7', b'g']), Some(Square::G7))
     }
 }

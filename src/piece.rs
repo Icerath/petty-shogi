@@ -115,3 +115,27 @@ impl fmt::Display for Piece {
         f.write_char(c as char)
     }
 }
+
+impl Piece {
+    pub fn try_from_symbol(symbol: u8) -> Option<Self> {
+        Some(match symbol {
+            b'p' => Self::GotePawn,
+            b'P' => Self::SentePawn,
+            b'l' => Self::GoteLance,
+            b'L' => Self::SenteLance,
+            b'n' => Self::GoteKnight,
+            b'N' => Self::SenteKnight,
+            b's' => Self::GoteSilver,
+            b'S' => Self::SenteSilver,
+            b'g' => Self::GoteGold,
+            b'G' => Self::SenteGold,
+            b'b' => Self::GoteBishop,
+            b'B' => Self::SenteBishop,
+            b'r' => Self::GoteRook,
+            b'R' => Self::SenteRook,
+            b'k' => Self::GoteKing,
+            b'K' => Self::SenteKing,
+            _ => return None,
+        })
+    }
+}
