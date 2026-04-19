@@ -1,4 +1,4 @@
-use crate::{Action, Bitboard, Board, Piece, PieceKind, Rank, Side, Square, bitboard};
+use crate::{Action, Bitboard, Board, PieceKind, Rank, Side, Square, bitboard};
 
 pub trait Receiver {
     fn recv(&mut self, action: Action);
@@ -26,7 +26,7 @@ impl Board {
     pub fn is_legal(&self, action: Action) -> bool {
         // check for pawn drop mate
         if let Action::Drop { piece, to } = action
-            && piece.kind() == PieceKind::Pawn
+            && piece == PieceKind::Pawn
             && (self[PieceKind::King] & self[!self.active])
                 .contains(to.forward(self.active).unwrap())
         {
@@ -95,7 +95,7 @@ impl Board {
 
         macro_rules! drop {
             ($piece:expr, $to:expr) => {
-                r.recv(Action::Drop { piece: Piece::new(self.active, $piece, false), to: $to })
+                r.recv(Action::Drop { piece: $piece, to: $to })
             };
         }
 

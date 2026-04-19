@@ -24,12 +24,9 @@ impl Board {
         self.active = !self.active;
     }
 
-    fn drop_move(&mut self, piece: Piece, to: Square) {
-        debug_assert_eq!(piece.side(), self.active);
-        debug_assert!(!piece.promoted());
-
-        self.hands[self.active as usize][piece.kind() as usize] -= 1;
-        self.insert_piece(piece, to);
+    fn drop_move(&mut self, piece: PieceKind, to: Square) {
+        self.hands[self.active as usize][piece as usize] -= 1;
+        self.insert_piece(Piece::new(self.active, piece, false), to);
     }
 
     fn play_move(&mut self, from: Square, to: Square, promoted: bool) {

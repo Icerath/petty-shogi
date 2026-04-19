@@ -1,11 +1,11 @@
 use std::{fmt, str::FromStr};
 
-use crate::{Piece, Square};
+use crate::{PieceKind, Square};
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum Action {
     Move { from: Square, to: Square, promoted: bool },
-    Drop { piece: Piece, to: Square },
+    Drop { piece: PieceKind, to: Square },
 }
 
 #[derive(Debug)]
@@ -23,7 +23,16 @@ impl FromStr for Action {
             return Err(InvalidActionStr);
         }
         if s[1] == b'*' {
-            let piece = Piece::try_from_symbol(s[0]).ok_or(InvalidActionStr)?;
+            let piece = match s[0] {
+                b'P' => PieceKind::Pawn,
+                b'L' => PieceKind::Lance,
+                b'N' => PieceKind::Knight,
+                b'S' => PieceKind::Silver,
+                b'G' => PieceKind::Gold,
+                b'B' => PieceKind::Bishop,
+                b'R' => PieceKind::Rook,
+                _ => return Err(InvalidActionStr),
+            };
             let to = Square::parse(s[2..=3].try_into().unwrap()).ok_or(InvalidActionStr)?;
             Ok(Action::Drop { piece, to })
         } else {
@@ -51,7 +60,19 @@ impl fmt::Display for Action {
                 }
                 Ok(())
             }
-            Self::Drop { piece, to } => write!(f, "{piece}*{to}"),
+            Self::Drop { piece, to } => {
+                let piece_symbol = match piece {
+                    PieceKind::Pawn => b'P',
+                    PieceKind::Lance => b'L',
+                    PieceKind::Knight => b'N',
+                    PieceKind::Silver => b'S',
+                    PieceKind::Gold => b'G',
+                    PieceKind::Bishop => b'B',
+                    PieceKind::Rook => b'R',
+                    PieceKind::King => b'K',
+                };
+                write!(f, "{}*{to}", piece_symbol as char)
+            }
         }
     }
 }
