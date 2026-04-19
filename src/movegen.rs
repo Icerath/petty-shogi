@@ -271,7 +271,7 @@ fn bishop_rook_finish<const PROMOTED: bool>(
     r: &mut impl Receiver,
 ) {
     if PROMOTED {
-        bb |= KING_LUT[sq as usize];
+        bb |= KING_LUT[sq as usize] & !board[board.active];
     }
     bb.for_each(|to| r.recv(Action::Move { from: sq, to, promoted: false }));
     if !PROMOTED {
