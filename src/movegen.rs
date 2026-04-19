@@ -53,7 +53,7 @@ impl Board {
             };
         }
         check! {
-            (self[PieceKind::Pawn] & !self.pieces.promoted).shift_forward(side),
+            (self[PieceKind::Pawn] & !self.pieces.promoted) & sq.forward(side).map_or(Bitboard::EMPTY, Square::mask),
             slide(sq, occupancy, 0, side.forward()) & self[PieceKind::Lance] & !self.pieces.promoted,
             KNIGHT_LUT[side as usize][sq as usize] & self[PieceKind::Knight] & !self.pieces.promoted,
             SILVER_LUT[side as usize][sq as usize] & self[PieceKind::Silver] & !self.pieces.promoted,
