@@ -132,11 +132,11 @@ impl Bitboard {
     }
 
     pub const fn shift_up(self) -> Self {
-        Self((self.0 << 9) & Self::FULL.0)
+        Self(self.0 >> 9)
     }
 
     pub const fn shift_down(self) -> Self {
-        Self(self.0 >> 9)
+        Self((self.0 << 9) & Self::FULL.0)
     }
 
     // FIXME: replace with const traits

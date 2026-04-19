@@ -157,7 +157,7 @@ impl Board {
 
         macro_rules! moves {
             ($side:expr, $($mask:ident: $promote:literal),*) => {{
-                let blocked_pawns = self[$side].shift_forward($side);
+                let blocked_pawns = self[$side].shift_back($side);
                 $(
                     (pawns & $mask & !blocked_pawns).for_each(|sq| {
                         r.recv(Action::Move {
