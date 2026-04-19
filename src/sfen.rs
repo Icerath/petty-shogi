@@ -79,13 +79,18 @@ fn parse_hands(fen: &[u8]) -> Option<[Hand; 2]> {
     if fen == b"-" {
         return Some(hands);
     }
-    for c in fen {
+    let mut fen = fen.iter().copied();
+    while let Some(mut c) = fen.next() {
         let mut number = None;
         let kind = loop {
             break match c.to_ascii_lowercase() {
                 b'0'..=b'9' => {
+                    if number.is_some() {
+                        return None;
+                    }
                     number = Some(c - b'0');
                     // TODO: check for promoted flag
+                    c = fen.next()?;
                     continue;
                 }
                 b'p' => PieceKind::Pawn,
