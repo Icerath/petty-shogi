@@ -3,13 +3,7 @@ use std::{
     ops::{Index, IndexMut},
 };
 
-use crate::{
-    action::Action,
-    bitboard::Bitboard,
-    piece::{Piece, PieceKind},
-    side::Side,
-    square::{File, Rank, Square},
-};
+use crate::{Action, Bitboard, File, Piece, PieceKind, Rank, Side, Square};
 
 pub type Hand = [u8; PieceKind::LEN];
 

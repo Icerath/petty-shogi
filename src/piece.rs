@@ -1,9 +1,8 @@
 use std::fmt::{self, Write};
 
-use crate::side::Side;
+use crate::Side;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[expect(dead_code, reason = "created via transmute")]
 pub enum Piece {
     SentePawn,
     GotePawn,

@@ -1,14 +1,4 @@
-#[rustfmt::skip] // rustfmt breaks the macro import
-use crate::bitboard;
-
-use crate::{
-    action::Action,
-    bitboard::Bitboard,
-    board::Board,
-    piece::{Piece, PieceKind},
-    side::Side,
-    square::Square,
-};
+use crate::{Action, Bitboard, Board, Piece, PieceKind, Side, Square, bitboard};
 
 pub trait Receiver {
     fn recv(&mut self, action: Action);

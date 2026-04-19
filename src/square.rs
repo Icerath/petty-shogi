@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::{bitboard::Bitboard, side::Side};
+use crate::{Bitboard, Side};
 
 #[derive(Debug, Clone, Copy)]
 #[rustfmt::skip]
@@ -24,7 +24,6 @@ pub enum File {
 
 #[derive(Debug, Clone, Copy)]
 #[rustfmt::skip]
-#[expect(unused)]
 pub enum Rank {
     A, B, C, D, E, F, G, H, I,
 }

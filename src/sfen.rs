@@ -1,11 +1,6 @@
 //! format taking from http://hgm.nubati.net/usi.html
 
-use crate::{
-    board::{Board, Hand},
-    piece::{Piece, PieceKind},
-    side::Side,
-    square::{File, Rank, Square},
-};
+use crate::{Board, File, Hand, Piece, PieceKind, Rank, Side, Square};
 
 pub const INITIAL_SFEN: &str = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1";
 

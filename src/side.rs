@@ -1,9 +1,6 @@
 use std::ops::Not;
 
-#[rustfmt::skip]
-use crate::bitboard;
-
-use crate::{bitboard::Bitboard, square::Rank};
+use crate::{Bitboard, Rank, bitboard};
 
 // consider using 1 and -1 for different codegen?
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]

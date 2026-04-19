@@ -3,11 +3,7 @@ use std::{
     ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, Not},
 };
 
-use crate::{
-    bitboard,
-    side::Side,
-    square::{File, Rank, Square},
-};
+use crate::{File, Rank, Side, Square, bitboard};
 
 #[derive(Default, Clone, Copy, PartialEq, Eq)]
 pub struct Bitboard(u128);

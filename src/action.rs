@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::{piece::Piece, square::Square};
+use crate::{Piece, Square};
 
 #[derive(Clone, Copy)]
 pub enum Action {
