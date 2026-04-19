@@ -24,7 +24,7 @@ impl FromStr for Action {
         }
         if s[1] == b'*' {
             let piece = Piece::try_from_symbol(s[0]).ok_or(InvalidActionStr)?;
-            let to = Square::parse(s[3..=4].try_into().unwrap()).ok_or(InvalidActionStr)?;
+            let to = Square::parse(s[2..=3].try_into().unwrap()).ok_or(InvalidActionStr)?;
             Ok(Action::Drop { piece, to })
         } else {
             let from = Square::parse(s[0..=1].try_into().unwrap()).ok_or(InvalidActionStr)?;
