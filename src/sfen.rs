@@ -6,10 +6,14 @@ pub const INITIAL_SFEN: &str = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/
 
 impl Board {
     pub fn start_pos() -> Self {
-        Self::from_sfen(INITIAL_SFEN.as_ref()).expect("the starting fen should be valid")
+        Self::from_sfen(INITIAL_SFEN).expect("the starting fen should be valid")
     }
 
-    pub fn from_sfen(sfen: &[u8]) -> Option<Self> {
+    pub fn from_sfen(sfen: impl AsRef<[u8]>) -> Option<Self> {
+        Self::from_sfen_(sfen.as_ref())
+    }
+
+    pub fn from_sfen_(sfen: &[u8]) -> Option<Self> {
         let mut fields = sfen.as_ref().split(|&b| b == b' ');
         let mut board = parse_pieces(fields.next()?)?;
         board.active = match fields.next()? {
