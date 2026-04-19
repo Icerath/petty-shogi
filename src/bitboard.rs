@@ -139,6 +139,22 @@ impl Bitboard {
         Self(self.0 >> 9)
     }
 
+    pub const fn left_or_right(mut self) -> Self {
+        const MASK: Bitboard = bitboard! {
+            0 1 1 1 1 1 1 1 0
+            0 1 1 1 1 1 1 1 0
+            0 1 1 1 1 1 1 1 0
+            0 1 1 1 1 1 1 1 0
+            0 1 1 1 1 1 1 1 0
+            0 1 1 1 1 1 1 1 0
+            0 1 1 1 1 1 1 1 0
+            0 1 1 1 1 1 1 1 0
+            0 1 1 1 1 1 1 1 0
+        };
+        self = Self(self.0 & MASK.0);
+        Self(self.0 << 9 | self.0 >> 9)
+    }
+
     // FIXME: replace with const traits
     pub const fn bitand(self, rhs: Bitboard) -> Self {
         Self(self.0 & rhs.0)

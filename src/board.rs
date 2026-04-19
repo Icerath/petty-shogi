@@ -51,7 +51,7 @@ impl Board {
         if promoted {
             debug_assert!(!from_piece.promoted());
             debug_assert!(from_piece.kind() != PieceKind::Gold);
-            debug_assert!(to.is_promotion_zone(self.active));
+            debug_assert!(from.is_promotion_zone(self.active) || to.is_promotion_zone(self.active));
             self.pieces.promoted.insert(to);
         }
     }
