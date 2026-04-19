@@ -41,7 +41,7 @@ impl Board {
         let Some(king_square) = (board[PieceKind::King] & board[self.active]).bitscan() else {
             return false;
         };
-        !self.is_square_attacked(king_square, self.active)
+        !board.is_square_attacked(king_square, self.active)
     }
 
     #[must_use]
