@@ -30,8 +30,11 @@ impl Board {
             && (self[PieceKind::King] & self[!self.active])
                 .contains(to.forward(self.active).unwrap())
         {
-            let king = (self[PieceKind::King] & self[!self.active]).bitscan().unwrap();
-            if self.is_square_attacked(king, self.active) {
+            let mut board = self.clone();
+            board.play(action);
+            let mut any = false;
+            board.legal_moves(&mut |_| any = true);
+            if !any {
                 return false;
             }
         }

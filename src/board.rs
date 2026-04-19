@@ -19,8 +19,9 @@ impl Board {
     pub fn play(&mut self, action: Action) {
         match action {
             Action::Drop { piece, to } => self.drop_move(piece, to),
-            Action::Move { from, to, promoted } => self.make_move(from, to, promoted),
+            Action::Move { from, to, promoted } => self.play_move(from, to, promoted),
         }
+        self.active = !self.active;
     }
 
     fn drop_move(&mut self, piece: Piece, to: Square) {
@@ -31,7 +32,7 @@ impl Board {
         self.insert_piece(piece, to);
     }
 
-    fn make_move(&mut self, from: Square, to: Square, promoted: bool) {
+    fn play_move(&mut self, from: Square, to: Square, promoted: bool) {
         let from_piece = Piece::new(
             self.active,
             self.pieces.kind(from).unwrap(),
@@ -41,7 +42,7 @@ impl Board {
 
         if let Some(piece) = self.pieces.get(to) {
             debug_assert!(piece.kind() != PieceKind::King);
-            self.hands[!self.active as usize][piece.kind() as usize] += 1;
+            self.hands[self.active as usize][piece.kind() as usize] += 1;
             self.remove_piece(piece, to);
         }
 
@@ -53,7 +54,6 @@ impl Board {
             debug_assert!(to.is_promotion_zone(self.active));
             self.pieces.promoted.insert(to);
         }
-        self.active = !self.active;
     }
 
     fn remove_piece(&mut self, piece: Piece, sq: Square) {
