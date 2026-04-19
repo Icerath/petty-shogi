@@ -114,7 +114,7 @@ impl Board {
                 .for_each(|sq| drop!(PieceKind::Lance, sq));
         }
         // knights
-        if self.hands[self.active as usize][PieceKind::Lance as usize] > 0 {
+        if self.hands[self.active as usize][PieceKind::Knight as usize] > 0 {
             (empty_squares & !self.active.promotion_zone().shift_forward(self.active))
                 .for_each(|sq| drop!(PieceKind::Knight, sq));
         }
