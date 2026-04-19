@@ -18,7 +18,7 @@ impl fmt::Display for Action {
                 }
                 Ok(())
             }
-            Self::Drop { piece, to } => write!(f, "{piece}{to}"),
+            Self::Drop { piece, to } => write!(f, "{piece}*{to}"),
         }
     }
 }
