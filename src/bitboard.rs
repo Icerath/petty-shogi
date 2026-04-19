@@ -183,10 +183,8 @@ impl Not for Bitboard {
 
 impl fmt::Debug for Bitboard {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let int = self.0;
-        for i in 0..81 {
-            let is_present = (int & (1 << i)) >> i == 1;
-            f.write_char(if is_present { '1' } else { '0' })?;
+        for sq in Square::ALL {
+            f.write_char(if self.contains(sq) { '1' } else { '0' })?;
         }
         Ok(())
     }
