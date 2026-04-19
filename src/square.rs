@@ -272,6 +272,7 @@ impl fmt::Display for Rank {
 mod tests {
     use super::*;
 
+    #[test]
     fn parse() {
         assert_eq!(Rank::try_from_symbol(b'i'), Some(Rank::I));
         assert_eq!(File::try_from_symbol(b'1'), Some(File::_1));
