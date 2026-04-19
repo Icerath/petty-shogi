@@ -3,6 +3,8 @@ use std::{
     ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, Not},
 };
 
+use konst::array::from_fn;
+
 use crate::{File, Rank, Side, Square, bitboard};
 
 #[derive(Default, Clone, Copy, PartialEq, Eq)]
@@ -30,7 +32,8 @@ impl Bitboard {
             0 0 0 0 0 0 0 0 0
             0 0 0 0 0 0 0 0 0
         };
-        Self(RANK0.0 << (rank as u8 * 9))
+        const LUT: [Bitboard; 9] = from_fn!(|rank| Bitboard(RANK0.0 << (rank as u128 * 9)));
+        LUT[rank as usize]
     }
 
     #[must_use]
@@ -46,7 +49,8 @@ impl Bitboard {
             1 0 0 0 0 0 0 0 0
             1 0 0 0 0 0 0 0 0
         };
-        Self(FILE0.0 << file as u8)
+        const LUT: [Bitboard; 9] = from_fn!(|file| Bitboard(FILE0.0 << (file as u128)));
+        LUT[file as usize]
     }
 
     #[must_use]
