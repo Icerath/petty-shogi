@@ -44,19 +44,25 @@ impl Board {
         let Some(king_square) = (board[PieceKind::King] & board[self.active]).bitscan() else {
             return false;
         };
-        !board.is_square_attacked(king_square, self.active)
+        board.gen_attackers(king_square, self.active).is_empty()
     }
 
     #[must_use]
     pub fn is_square_attacked(&self, sq: Square, side: Side) -> bool {
+        !self.gen_attackers(sq, side).is_empty()
+    }
+
+    #[must_use]
+    pub fn gen_attackers(&self, sq: Square, side: Side) -> Bitboard {
         let occupancy = self.pieces.all();
-        macro_rules! check {
+        macro_rules! attackers {
             ($($bb:expr),* $(,)?) => {
-                $(!($bb & self[!side]).is_empty())||*
+                let mut attackers = Bitboard::EMPTY;
+                $(attackers |= ($bb & self[!side]);)*
+                attackers
             };
         }
-
-        check! {
+        attackers! {
             (self[PieceKind::Pawn] & !self.pieces.promoted) & sq.forward(side).map_or(Bitboard::EMPTY, Square::mask),
             slide(sq, occupancy, 0, side.forward()) & self[PieceKind::Lance] & !self.pieces.promoted,
             KNIGHT_LUT[side ][sq ] & self[PieceKind::Knight] & !self.pieces.promoted,
@@ -78,15 +84,19 @@ impl Board {
     }
 
     pub fn pseudolegal_moves<'a, R: Receiver>(&self, r: &'a mut R) -> &'a mut R {
-        self.pawn_moves(r);
-        self.lance_moves(r);
-        self.knight_moves(r);
-        self.silver_moves(r);
-        self.gold_moves(r);
-        self.bishop_moves(r);
-        self.rook_moves(r);
+        let king_square = (self[PieceKind::King] & self[self.active]).bitscan().unwrap();
+        let checkers = self.gen_attackers(king_square, self.active);
+        if checkers.count() < 2 {
+            self.drop_moves(r);
+            self.pawn_moves(r);
+            self.lance_moves(r);
+            self.knight_moves(r);
+            self.silver_moves(r);
+            self.gold_moves(r);
+            self.bishop_moves(r);
+            self.rook_moves(r);
+        }
         self.king_moves(r);
-        self.drop_moves(r);
         r
     }
 
