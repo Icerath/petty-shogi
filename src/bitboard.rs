@@ -16,7 +16,8 @@ impl Bitboard {
 
     #[must_use]
     pub const fn from_square(sq: Square) -> Self {
-        Self(1u128 << sq as u8)
+        const LUT: [Bitboard; 81] = from_fn!(|i| Bitboard(1u128 << i));
+        LUT[sq as usize]
     }
 
     #[must_use]
