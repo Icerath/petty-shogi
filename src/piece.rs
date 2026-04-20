@@ -49,6 +49,8 @@ pub enum PieceKind {
 }
 
 impl Piece {
+    pub const LEN: usize = Self::GoteKing as usize + 1;
+
     pub fn new(side: Side, kind: PieceKind, promoted: bool) -> Self {
         unsafe { Self::from_int_unchecked(side as u8 | (promoted as u8) << 1 | (kind as u8) << 2) }
     }

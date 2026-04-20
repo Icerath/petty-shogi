@@ -11,6 +11,8 @@ pub enum Side {
 }
 
 impl Side {
+    pub const LEN: usize = 2;
+
     pub fn from_bool(gote: bool) -> Self {
         if gote { Self::Gote } else { Self::Sente }
     }

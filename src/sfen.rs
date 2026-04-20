@@ -104,7 +104,7 @@ fn parse_hands(fen: &[u8]) -> Option<[Hand; 2]> {
             };
         };
         let side = if c.is_ascii_uppercase() { Side::Sente } else { Side::Gote };
-        hands[side as usize][kind as usize] = number.unwrap_or(1);
+        hands[side][kind] = number.unwrap_or(1);
     }
     Some(hands)
 }

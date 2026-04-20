@@ -38,6 +38,7 @@ impl Square {
         }
         out
     };
+    pub const LEN: usize = 81;
 
     pub const fn new(file: File, rank: Rank) -> Self {
         unsafe { Self::from_int_unchecked(file as u8 + rank as u8 * 9) }
@@ -162,6 +163,8 @@ impl fmt::Display for Square {
 
 #[expect(clippy::missing_transmute_annotations)]
 impl File {
+    pub const LEN: usize = 9;
+
     #[inline(always)]
     pub const fn from_int(int: u8) -> Option<Self> {
         match int {
@@ -194,6 +197,7 @@ impl File {
 
 #[expect(clippy::missing_transmute_annotations)]
 impl Rank {
+    pub const LEN: usize = 9;
     pub const SYMBOLS: [u8; 9] = [b'a', b'b', b'c', b'd', b'e', b'f', b'g', b'h', b'i'];
 
     #[inline(always)]
@@ -264,7 +268,7 @@ impl Rank {
 
 impl fmt::Display for Rank {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        (Self::SYMBOLS[*self as usize] as char).fmt(f)
+        (Self::SYMBOLS[*self] as char).fmt(f)
     }
 }
 

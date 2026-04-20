@@ -1,6 +1,7 @@
 mod action;
 mod bitboard;
 mod board;
+mod index;
 mod movegen;
 mod perft;
 mod piece;

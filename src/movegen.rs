@@ -59,12 +59,12 @@ impl Board {
         check! {
             (self[PieceKind::Pawn] & !self.pieces.promoted) & sq.forward(side).map_or(Bitboard::EMPTY, Square::mask),
             slide(sq, occupancy, 0, side.forward()) & self[PieceKind::Lance] & !self.pieces.promoted,
-            KNIGHT_LUT[side as usize][sq as usize] & self[PieceKind::Knight] & !self.pieces.promoted,
-            SILVER_LUT[side as usize][sq as usize] & self[PieceKind::Silver] & !self.pieces.promoted,
-            GOLD_LUT[side as usize][sq as usize] & self.gold_move_pieces(),
+            KNIGHT_LUT[side ][sq ] & self[PieceKind::Knight] & !self.pieces.promoted,
+            SILVER_LUT[side ][sq ] & self[PieceKind::Silver] & !self.pieces.promoted,
+            GOLD_LUT[side ][sq ] & self.gold_move_pieces(),
             bishop_bb(occupancy, sq) & self[PieceKind::Bishop],
             rook_bb(occupancy, sq) & self[PieceKind::Rook],
-            KING_LUT[sq as usize] & (self[PieceKind::King] | ((self[PieceKind::Bishop] | self[PieceKind::Rook]) & self.pieces.promoted)),
+            KING_LUT[sq ] & (self[PieceKind::King] | ((self[PieceKind::Bishop] | self[PieceKind::Rook]) & self.pieces.promoted)),
         }
     }
 
@@ -100,7 +100,7 @@ impl Board {
         }
 
         // pawns
-        if self.hands[self.active as usize][PieceKind::Pawn as usize] > 0 {
+        if self.hands[self.active][PieceKind::Pawn] > 0 {
             let mut busy_files = Bitboard::EMPTY;
             (self[PieceKind::Pawn] & !self.pieces.promoted & self[self.active]).for_each(|sq| {
                 busy_files |= sq.file().mask();
@@ -109,18 +109,18 @@ impl Board {
                 .for_each(|sq| drop!(PieceKind::Pawn, sq));
         }
         // lances
-        if self.hands[self.active as usize][PieceKind::Lance as usize] > 0 {
+        if self.hands[self.active][PieceKind::Lance] > 0 {
             (empty_squares & !self.active.end_rank().mask())
                 .for_each(|sq| drop!(PieceKind::Lance, sq));
         }
         // knights
-        if self.hands[self.active as usize][PieceKind::Knight as usize] > 0 {
+        if self.hands[self.active][PieceKind::Knight] > 0 {
             (empty_squares & !self.active.promotion_zone().shift_forward(self.active))
                 .for_each(|sq| drop!(PieceKind::Knight, sq));
         }
         // rest
         for &piece in &PieceKind::ALL[PieceKind::Silver as usize..PieceKind::King as usize] {
-            if self.hands[self.active as usize][piece as usize] == 0 {
+            if self.hands[self.active][piece] == 0 {
                 continue;
             }
             empty_squares.for_each(|sq| drop!(piece, sq));
@@ -246,21 +246,21 @@ fn lance(board: &Board, sq: Square, r: &mut impl Receiver) {
 }
 
 fn knight(board: &Board, sq: Square, r: &mut impl Receiver) {
-    (KNIGHT_LUT[board.active as usize][sq as usize] & !board[board.active])
+    (KNIGHT_LUT[board.active][sq] & !board[board.active])
         .for_each(|to| r.recv(Action::Move { from: sq, to, promoted: false }));
-    (KNIGHT_PROMOTION_LUT[board.active as usize][sq as usize] & !board[board.active])
+    (KNIGHT_PROMOTION_LUT[board.active][sq] & !board[board.active])
         .for_each(|to| r.recv(Action::Move { from: sq, to, promoted: true }));
 }
 
 fn silver(board: &Board, sq: Square, r: &mut impl Receiver) {
-    let bb = SILVER_LUT[board.active as usize][sq as usize] & !board[board.active];
+    let bb = SILVER_LUT[board.active][sq] & !board[board.active];
     bb.for_each(|to| r.recv(Action::Move { from: sq, to, promoted: false }));
     (bb & board.active.promotion_zone())
         .for_each(|to| r.recv(Action::Move { from: sq, to, promoted: true }));
 }
 
 fn gold(board: &Board, sq: Square, r: &mut impl Receiver) {
-    (GOLD_LUT[board.active as usize][sq as usize] & !board[board.active])
+    (GOLD_LUT[board.active][sq] & !board[board.active])
         .for_each(|to| r.recv(Action::Move { from: sq, to, promoted: false }));
 }
 
@@ -271,7 +271,7 @@ fn bishop_rook_finish<const PROMOTED: bool>(
     r: &mut impl Receiver,
 ) {
     if PROMOTED {
-        bb |= KING_LUT[sq as usize] & !board[board.active];
+        bb |= KING_LUT[sq] & !board[board.active];
     }
     bb.for_each(|to| r.recv(Action::Move { from: sq, to, promoted: false }));
     if !PROMOTED {
@@ -311,7 +311,7 @@ fn rook_bb(occupancy: Bitboard, sq: Square) -> Bitboard {
 }
 
 fn king(board: &Board, sq: Square, r: &mut impl Receiver) {
-    (KING_LUT[sq as usize] & !board[board.active]).for_each(|to| {
+    (KING_LUT[sq] & !board[board.active]).for_each(|to| {
         r.recv(Action::Move { from: sq, to, promoted: false });
     });
 }

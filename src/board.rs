@@ -25,7 +25,7 @@ impl Board {
     }
 
     fn drop_move(&mut self, piece: PieceKind, to: Square) {
-        self.hands[self.active as usize][piece as usize] -= 1;
+        self.hands[self.active][piece] -= 1;
         self.insert_piece(Piece::new(self.active, piece, false), to);
     }
 
@@ -39,7 +39,7 @@ impl Board {
 
         if let Some(piece) = self.pieces.get(to) {
             debug_assert!(piece.kind() != PieceKind::King);
-            self.hands[self.active as usize][piece.kind() as usize] += 1;
+            self.hands[self.active][piece.kind()] += 1;
             self.remove_piece(piece, to);
         }
 
@@ -94,7 +94,7 @@ impl Pieces {
     }
 
     pub fn kind(&self, sq: Square) -> Option<PieceKind> {
-        PieceKind::ALL.into_iter().find(|&kind| self.pieces[kind as usize].contains(sq))
+        PieceKind::ALL.into_iter().find(|&kind| self.pieces[kind].contains(sq))
     }
 }
 
@@ -102,13 +102,13 @@ impl Index<PieceKind> for Board {
     type Output = Bitboard;
 
     fn index(&self, index: PieceKind) -> &Self::Output {
-        &self.pieces.pieces[index as usize]
+        &self.pieces.pieces[index]
     }
 }
 
 impl IndexMut<PieceKind> for Board {
     fn index_mut(&mut self, index: PieceKind) -> &mut Self::Output {
-        &mut self.pieces.pieces[index as usize]
+        &mut self.pieces.pieces[index]
     }
 }
 
@@ -116,13 +116,13 @@ impl Index<Side> for Board {
     type Output = Bitboard;
 
     fn index(&self, index: Side) -> &Self::Output {
-        &self.pieces.sides[index as usize]
+        &self.pieces.sides[index]
     }
 }
 
 impl IndexMut<Side> for Board {
     fn index_mut(&mut self, index: Side) -> &mut Self::Output {
-        &mut self.pieces.sides[index as usize]
+        &mut self.pieces.sides[index]
     }
 }
 
