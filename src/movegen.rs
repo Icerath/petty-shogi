@@ -82,7 +82,6 @@ impl Board {
         self.is_square_attacked(king_square, self.active)
     }
 
-    #[must_use]
     pub fn legal_moves<R: Receiver>(&self, mut r: R) -> R {
         self.pseudolegal_moves(&mut |mov| {
             if self.is_legal(mov) {
