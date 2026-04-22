@@ -4,9 +4,15 @@ pub trait Receiver {
     fn recv(&mut self, action: Action);
 }
 
-impl Receiver for &mut Vec<Action> {
+impl Receiver for Vec<Action> {
     fn recv(&mut self, action: Action) {
         self.push(action);
+    }
+}
+
+impl Receiver for &mut Vec<Action> {
+    fn recv(&mut self, action: Action) {
+        (*self).recv(action)
     }
 }
 
