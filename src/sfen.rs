@@ -1,5 +1,7 @@
 //! format taking from http://hgm.nubati.net/usi.html
 
+use std::io::Write as _;
+
 use crate::{Board, File, Hand, Piece, PieceKind, Rank, Side, Square};
 
 pub const INITIAL_SFEN: &str = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1";
@@ -26,8 +28,80 @@ impl Board {
         Some(board)
     }
 
-    pub fn into_sfen(&self) -> Vec<u8> {
-        todo!()
+    pub fn to_sfen(&self) -> String {
+        let mut buf = vec![];
+        self.write_fen(&mut buf);
+        unsafe { String::from_utf8_unchecked(buf) }
+    }
+
+    pub fn write_fen(&self, buf: &mut Vec<u8>) {
+        let mut prev = None::<Square>;
+        for sq in Square::ALL {
+            if let Some(piece) = self.pieces.get(sq) {
+                if let Some(prev) = prev {
+                    if let Some(dif @ 1..) =
+                        (sq.file() as u8).checked_sub((prev.file() as u8 + 1) % 9)
+                    {
+                        buf.push(dif + b'0');
+                    }
+                } else if sq.file() as u8 != 0 {
+                    buf.push(sq.file() as u8 + b'0');
+                }
+                if piece.promoted() {
+                    buf.push(b'+');
+                }
+                let mut symbol = piece.kind().symbol();
+                if piece.side() == Side::Sente {
+                    symbol.make_ascii_uppercase();
+                }
+                buf.push(symbol);
+                prev = Some(sq);
+            }
+            if sq.file() as u8 == 8 && sq != Square::I1 {
+                if !self.pieces.contains(sq) {
+                    if let Some(prev) = prev {
+                        if let dif @ 1.. = 9 - (prev.file() as u8 + 1) % 9 {
+                            buf.push(dif + b'0');
+                        }
+                    } else {
+                        buf.push(b'9');
+                    }
+                }
+                buf.push(b'/');
+                prev = Some(sq);
+            }
+        }
+
+        if !self.pieces.contains(Square::I9)
+            && let dif @ 1.. = 9 - (prev.unwrap().file() as u8 + 1) % 9
+        {
+            buf.push(dif + b'0');
+        }
+
+        buf.push(b' ');
+        buf.push(if self.active == Side::Sente { b'b' } else { b'w' });
+
+        buf.push(b' ');
+        if self.hands.iter().flatten().sum::<u8>() == 0 {
+            buf.push(b'-');
+        } else {
+            for side in Side::ALL {
+                for &piece in PieceKind::ALL[..PieceKind::King as usize].iter().rev() {
+                    match self.hands[side][piece] {
+                        0 => continue,
+                        1 => {}
+                        count @ 2.. => buf.push(count + b'0'),
+                    }
+                    let mut symbol = piece.symbol();
+                    if side == Side::Sente {
+                        symbol.make_ascii_uppercase();
+                    }
+                    buf.push(symbol);
+                }
+            }
+        }
+
+        write!(buf, " {}", self.move_counter).expect("Writing to a string should not fail");
     }
 }
 
@@ -107,4 +181,10 @@ fn parse_hands(fen: &[u8]) -> Option<[Hand; 2]> {
         hands[side][kind] = number.unwrap_or(1);
     }
     Some(hands)
+}
+
+#[test]
+fn test_sfen() {
+    assert_eq!(Board::from_sfen(INITIAL_SFEN).unwrap().to_sfen(), INITIAL_SFEN);
+    assert_eq!(Board::EMPTY.to_sfen(), "9/9/9/9/9/9/9/9/9 b - 0");
 }

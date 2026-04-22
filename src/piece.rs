@@ -69,16 +69,6 @@ impl Piece {
 }
 
 impl PieceKind {
-    pub const ALL: [Self; Self::LEN] = [
-        Self::Pawn,
-        Self::Lance,
-        Self::Knight,
-        Self::Silver,
-        Self::Gold,
-        Self::Bishop,
-        Self::Rook,
-        Self::King,
-    ];
     pub const LEN: usize = Self::King as usize + 1;
 }
 

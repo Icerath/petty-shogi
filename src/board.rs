@@ -29,6 +29,7 @@ impl Board {
             Action::Move { from, to, promoted } => self.play_move(from, to, promoted),
         }
         self.active = !self.active;
+        self.move_counter += 1;
     }
 
     fn drop_move(&mut self, piece: PieceKind, to: Square) {
@@ -91,6 +92,10 @@ impl Pieces {
 
     pub fn all(&self) -> Bitboard {
         self.sides[0] | self.sides[1]
+    }
+
+    pub fn contains(&self, sq: Square) -> bool {
+        self.all().contains(sq)
     }
 
     pub fn get(&self, sq: Square) -> Option<Piece> {

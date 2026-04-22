@@ -16,6 +16,9 @@ macro_rules! impl_index {
             }
         }
         impl $ty {
+            pub const ALL: [Self; Self::LEN] = {
+                konst::array::from_fn!(|i| unsafe { Self::from_int_unchecked(i as u8) })
+            };
             #[inline(always)]
             pub const fn from_int(int: u8) -> Option<Self> {
                 if (int as usize) < Self::LEN { Some(unsafe { core::mem::transmute::<u8, Self>(int) }) } else { None }

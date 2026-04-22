@@ -29,15 +29,6 @@ pub enum Rank {
 }
 
 impl Square {
-    pub const ALL: [Self; 81] = {
-        let mut out = [Square::A1; 81];
-        let mut i = 0;
-        while i < 81 {
-            out[i as usize] = Square::from_int(i).unwrap();
-            i += 1;
-        }
-        out
-    };
     pub const LEN: usize = 81;
 
     pub const fn new(file: File, rank: Rank) -> Self {
