@@ -55,10 +55,6 @@ impl Piece {
         unsafe { Self::from_int_unchecked(side as u8 | (promoted as u8) << 1 | (kind as u8) << 2) }
     }
 
-    pub unsafe fn from_int_unchecked(int: u8) -> Self {
-        unsafe { std::mem::transmute(int) }
-    }
-
     pub fn side(self) -> Side {
         Side::from_bool(self as u8 & 1 == 1)
     }
@@ -84,10 +80,6 @@ impl PieceKind {
         Self::King,
     ];
     pub const LEN: usize = Self::King as usize + 1;
-
-    pub unsafe fn from_int_unchecked(int: u8) -> Self {
-        unsafe { std::mem::transmute(int) }
-    }
 }
 
 impl PieceKind {

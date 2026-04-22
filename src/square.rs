@@ -44,15 +44,6 @@ impl Square {
         unsafe { Self::from_int_unchecked(file as u8 + rank as u8 * 9) }
     }
 
-    pub const unsafe fn from_int_unchecked(int: u8) -> Self {
-        debug_assert!(int < 81);
-        unsafe { std::mem::transmute(int) }
-    }
-
-    pub const fn from_int(int: u8) -> Option<Self> {
-        if int < 81 { Some(unsafe { Self::from_int_unchecked(int) }) } else { None }
-    }
-
     pub const fn as_str(self) -> &'static str {
         #[rustfmt::skip]
         const NAMES: [&str; 81] = [
@@ -166,14 +157,6 @@ impl File {
     pub const LEN: usize = 9;
 
     #[inline(always)]
-    pub const fn from_int(int: u8) -> Option<Self> {
-        match int {
-            0..9 => Some(unsafe { std::mem::transmute(int) }),
-            _ => None,
-        }
-    }
-
-    #[inline(always)]
     pub const fn left(self) -> Option<Self> {
         if self as u8 == 0 { None } else { unsafe { std::mem::transmute(self as u8 - 1) } }
     }
@@ -199,14 +182,6 @@ impl File {
 impl Rank {
     pub const LEN: usize = 9;
     pub const SYMBOLS: [u8; 9] = [b'a', b'b', b'c', b'd', b'e', b'f', b'g', b'h', b'i'];
-
-    #[inline(always)]
-    pub const fn from_int(int: u8) -> Option<Self> {
-        match int {
-            0..9 => Some(unsafe { std::mem::transmute(int) }),
-            _ => None,
-        }
-    }
 
     #[inline(always)]
     pub const fn is_promotion_zone(self, side: Side) -> bool {
