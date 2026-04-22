@@ -2,10 +2,18 @@ use std::{fmt, str::FromStr};
 
 use crate::{PieceKind, Square};
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Action {
     Move { from: Square, to: Square, promoted: bool },
     Drop { piece: PieceKind, to: Square },
+}
+
+impl Action {
+    pub fn to(self) -> Square {
+        match self {
+            Self::Drop { to, .. } | Self::Move { to, .. } => to,
+        }
+    }
 }
 
 #[derive(Debug)]

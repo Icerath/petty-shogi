@@ -32,7 +32,7 @@ impl Board {
 }
 
 fn parse_pieces(fen: &[u8]) -> Option<Board> {
-    let mut board = Board::default();
+    let mut board = Board::EMPTY;
     let mut rank = 0;
     let mut file = 0;
 

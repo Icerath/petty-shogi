@@ -7,7 +7,7 @@ use crate::{Action, Bitboard, File, Piece, PieceKind, Rank, Side, Square};
 
 pub type Hand = [u8; PieceKind::LEN];
 
-#[derive(Default, Clone)]
+#[derive(Clone)]
 pub struct Board {
     pub pieces: Pieces,
     pub hands: [Hand; 2],
@@ -16,6 +16,13 @@ pub struct Board {
 }
 
 impl Board {
+    pub const EMPTY: Self = Self {
+        pieces: Pieces::EMPTY,
+        hands: [[0; PieceKind::LEN]; 2],
+        active: Side::Sente,
+        move_counter: 0,
+    };
+
     pub fn play(&mut self, action: Action) {
         match action {
             Action::Drop { piece, to } => self.drop_move(piece, to),
@@ -68,7 +75,7 @@ impl Board {
     }
 }
 
-#[derive(Default, Clone)]
+#[derive(Clone)]
 pub struct Pieces {
     pub sides: [Bitboard; 2],
     pub promoted: Bitboard,
@@ -76,6 +83,12 @@ pub struct Pieces {
 }
 
 impl Pieces {
+    pub const EMPTY: Self = Self {
+        sides: [Bitboard::EMPTY; 2],
+        promoted: Bitboard::EMPTY,
+        pieces: [Bitboard::EMPTY; PieceKind::LEN],
+    };
+
     pub fn all(&self) -> Bitboard {
         self.sides[0] | self.sides[1]
     }

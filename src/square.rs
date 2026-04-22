@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::{Bitboard, Side};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[rustfmt::skip]
 pub enum Square {
     A9, A8, A7, A6, A5, A4, A3, A2, A1,
