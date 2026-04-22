@@ -4,7 +4,7 @@ pub trait Receiver {
     fn recv(&mut self, action: Action);
 }
 
-impl Receiver for Vec<Action> {
+impl Receiver for &mut Vec<Action> {
     fn recv(&mut self, action: Action) {
         self.push(action);
     }
@@ -33,7 +33,7 @@ impl Board {
             let mut board = self.clone();
             board.play(action);
             let mut any = false;
-            board.legal_moves(&mut |_| any = true);
+            _ = board.legal_moves(|_| any = true);
             if !any {
                 return false;
             }
@@ -74,7 +74,8 @@ impl Board {
         }
     }
 
-    pub fn legal_moves<'a, R: Receiver>(&self, r: &'a mut R) -> &'a mut R {
+    #[must_use]
+    pub fn legal_moves<R: Receiver>(&self, mut r: R) -> R {
         self.pseudolegal_moves(&mut |mov| {
             if self.is_legal(mov) {
                 r.recv(mov)
@@ -83,20 +84,20 @@ impl Board {
         r
     }
 
-    pub fn pseudolegal_moves<'a, R: Receiver>(&self, r: &'a mut R) -> &'a mut R {
+    pub fn pseudolegal_moves<R: Receiver>(&self, mut r: R) -> R {
         let king_square = (self[PieceKind::King] & self[self.active]).bitscan().unwrap();
         let checkers = self.gen_attackers(king_square, self.active);
         if checkers.count() < 2 {
-            self.drop_moves(r);
-            self.pawn_moves(r);
-            self.lance_moves(r);
-            self.knight_moves(r);
-            self.silver_moves(r);
-            self.gold_moves(r);
-            self.bishop_moves(r);
-            self.rook_moves(r);
+            self.drop_moves(&mut r);
+            self.pawn_moves(&mut r);
+            self.lance_moves(&mut r);
+            self.knight_moves(&mut r);
+            self.silver_moves(&mut r);
+            self.gold_moves(&mut r);
+            self.bishop_moves(&mut r);
+            self.rook_moves(&mut r);
         }
-        self.king_moves(r);
+        self.king_moves(&mut r);
         r
     }
 

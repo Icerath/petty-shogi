@@ -6,10 +6,10 @@ impl Board {
             return 1;
         }
         if depth == 1 {
-            return *self.legal_moves(&mut 0);
+            return self.legal_moves(0);
         }
         let mut sum = 0;
-        self.clone().legal_moves(&mut |mov| {
+        _ = self.clone().legal_moves(|mov| {
             let copy = self.clone();
             self.play(mov);
             sum += self.perft(depth - 1);
@@ -20,7 +20,7 @@ impl Board {
 
     pub fn print_perft(&mut self, depth: u64) -> u64 {
         let mut sum = 0;
-        self.clone().legal_moves(&mut |mov| {
+        _ = self.clone().legal_moves(|mov| {
             let copy = self.clone();
             self.play(mov);
             let positions = self.perft(depth - 1);
