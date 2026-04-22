@@ -148,6 +148,10 @@ impl Bitboard {
     pub const fn bitand(self, rhs: Bitboard) -> Self {
         Self(self.0 & rhs.0)
     }
+
+    pub const fn iter(self) -> Iter {
+        Iter(self)
+    }
 }
 
 impl BitOr for Bitboard {
@@ -204,6 +208,27 @@ impl fmt::Display for Bitboard {
             }
         }
         Ok(())
+    }
+}
+
+pub struct Iter(pub Bitboard);
+
+impl IntoIterator for Bitboard {
+    type IntoIter = Iter;
+    type Item = Square;
+
+    fn into_iter(self) -> Self::IntoIter {
+        Iter(self)
+    }
+}
+
+impl Iterator for Iter {
+    type Item = Square;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let next = self.0.bitscan()?;
+        self.0.bitscan_pop();
+        Some(next)
     }
 }
 
