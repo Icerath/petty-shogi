@@ -75,6 +75,14 @@ impl Board {
     }
 
     #[must_use]
+    pub fn is_check(&self) -> bool {
+        let Some(king_square) = (self[PieceKind::King] & self[self.active]).bitscan() else {
+            return false;
+        };
+        self.is_square_attacked(king_square, self.active)
+    }
+
+    #[must_use]
     pub fn legal_moves<R: Receiver>(&self, mut r: R) -> R {
         self.pseudolegal_moves(&mut |mov| {
             if self.is_legal(mov) {
