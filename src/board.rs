@@ -94,9 +94,9 @@ impl Pieces {
     }
 
     pub fn get(&self, sq: Square) -> Option<Piece> {
-        let side = if self.sides[0].contains(sq) {
+        let side = if self.sides[Side::Sente].contains(sq) {
             Side::Sente
-        } else if self.sides[1].contains(sq) {
+        } else if self.sides[Side::Gote].contains(sq) {
             Side::Gote
         } else {
             return None;
