@@ -232,6 +232,20 @@ impl Iterator for Iter {
     }
 }
 
+impl FromIterator<Square> for Bitboard {
+    fn from_iter<I: IntoIterator<Item = Square>>(iter: I) -> Self {
+        let mut bb = Self::EMPTY;
+        bb.extend(iter);
+        bb
+    }
+}
+
+impl Extend<Square> for Bitboard {
+    fn extend<I: IntoIterator<Item = Square>>(&mut self, iter: I) {
+        iter.into_iter().for_each(|sq| self.insert(sq));
+    }
+}
+
 #[macro_export]
 macro_rules! _bit {
     (0) => {

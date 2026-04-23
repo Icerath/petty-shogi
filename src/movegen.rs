@@ -48,7 +48,7 @@ impl Board {
         let mut board = self.clone();
         board.play(action);
         let Some(king_square) = (board[PieceKind::King] & board[self.active]).bitscan() else {
-            return false;
+            return true;
         };
         board.gen_attackers(king_square, self.active).is_empty()
     }
@@ -98,8 +98,10 @@ impl Board {
     }
 
     pub fn pseudolegal_moves<R: Receiver>(&self, mut r: R) -> R {
-        let king_square = (self[PieceKind::King] & self[self.active]).bitscan().unwrap();
-        let checkers = self.gen_attackers(king_square, self.active);
+        let checkers = match (self[PieceKind::King] & self[self.active]).bitscan() {
+            Some(king_square) => self.gen_attackers(king_square, self.active),
+            None => Bitboard::EMPTY,
+        };
         let mask = !self[self.active];
         if checkers.count() < 2 {
             self.drop_moves(mask, &mut r);
