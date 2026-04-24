@@ -10,6 +10,35 @@ pub enum Side {
     Gote, // white
 }
 
+#[cfg(feature = "serde")]
+impl serde::Serialize for Side {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let s = match self {
+            Self::Sente => "b",
+            Self::Gote => "w",
+        };
+        s.serialize(serializer)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de> serde::Deserialize<'de> for Side {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s = <&str>::deserialize(deserializer)?;
+        match s {
+            "w" => Ok(Side::Gote),
+            "b" => Ok(Side::Sente),
+            _ => Err(serde::de::Error::custom("invalid side")),
+        }
+    }
+}
+
 impl Side {
     pub const LEN: usize = 2;
 

@@ -19,6 +19,12 @@ impl Action {
 #[derive(Debug)]
 pub struct InvalidActionStr;
 
+impl fmt::Display for InvalidActionStr {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("invalid action")
+    }
+}
+
 impl FromStr for Action {
     type Err = InvalidActionStr;
 
@@ -88,6 +94,26 @@ impl fmt::Display for Action {
 impl fmt::Debug for Action {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(self, f)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de> serde::Deserialize<'de> for Action {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let str = <&str>::deserialize(deserializer)?;
+        Self::from_str(str).map_err(serde::de::Error::custom)
+    }
+}
+#[cfg(feature = "serde")]
+impl serde::Serialize for Action {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.to_string().serialize(serializer)
     }
 }
 

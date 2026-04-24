@@ -166,3 +166,24 @@ impl fmt::Display for Board {
         write!(f, "{out}")
     }
 }
+
+#[cfg(feature = "serde")]
+impl serde::Serialize for Board {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.to_string().serialize(serializer)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de> serde::Deserialize<'de> for Board {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let str = <&str>::deserialize(deserializer)?;
+        Self::from_sfen(str).ok_or_else(|| serde::de::Error::custom("invalid sfen"))
+    }
+}

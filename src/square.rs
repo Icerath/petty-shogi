@@ -238,6 +238,27 @@ impl fmt::Display for Rank {
     }
 }
 
+#[cfg(feature = "serde")]
+impl serde::Serialize for Square {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.to_string().serialize(serializer)
+    }
+}
+#[cfg(feature = "serde")]
+impl<'de> serde::Deserialize<'de> for Square {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let str = <&str>::deserialize(deserializer)?;
+        let bytes = str.as_bytes().try_into().map_err(serde::de::Error::custom)?;
+        Self::parse(bytes).ok_or_else(|| serde::de::Error::custom("invalid square"))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
