@@ -72,12 +72,12 @@ impl Board {
         attackers! {
             (self[PieceKind::Pawn] & !self.pieces.promoted) & sq.forward(side).map_or(Bitboard::EMPTY, Square::mask),
             slide(sq, occupancy, 0, side.forward()) & self[PieceKind::Lance] & !self.pieces.promoted,
-            KNIGHT_LUT[side ][sq ] & self[PieceKind::Knight] & !self.pieces.promoted,
-            SILVER_LUT[side ][sq ] & self[PieceKind::Silver] & !self.pieces.promoted,
-            GOLD_LUT[side ][sq ] & self.gold_move_pieces(),
+            KNIGHT_LUT[side][sq] & self[PieceKind::Knight] & !self.pieces.promoted,
+            SILVER_LUT[side][sq] & self[PieceKind::Silver] & !self.pieces.promoted,
+            GOLD_LUT[side][sq] & self.gold_move_pieces(),
             bishop_bb(occupancy, sq) & self[PieceKind::Bishop],
             rook_bb(occupancy, sq) & self[PieceKind::Rook],
-            KING_LUT[sq ] & (self[PieceKind::King] | ((self[PieceKind::Bishop] | self[PieceKind::Rook]) & self.pieces.promoted)),
+            KING_LUT[sq] & (self[PieceKind::King] | ((self[PieceKind::Bishop] | self[PieceKind::Rook]) & self.pieces.promoted)),
         }
     }
 
