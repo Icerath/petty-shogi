@@ -90,7 +90,7 @@ impl Board {
     }
 
     pub fn legal_moves<R: Receiver>(&self, mut r: R) -> R {
-        self.pseudolegal_moves(&mut |mov| {
+        _ = self.pseudolegal_moves(|mov| {
             if self.is_legal(mov) {
                 r.recv(mov)
             }
