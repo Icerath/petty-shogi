@@ -46,7 +46,7 @@ impl Side {
         if gote { Self::Gote } else { Self::Sente }
     }
 
-    pub fn forward(self) -> i8 {
+    pub const fn forward(self) -> i8 {
         match self {
             Self::Sente => -1,
             Self::Gote => 1,
@@ -64,6 +64,13 @@ impl Side {
         match self {
             Self::Sente => SENTE_PROMOTION_ZONE,
             Self::Gote => const { SENTE_PROMOTION_ZONE.flip() },
+        }
+    }
+
+    pub const fn flip(self) -> Self {
+        match self {
+            Self::Sente => Self::Gote,
+            Self::Gote => Self::Sente,
         }
     }
 }

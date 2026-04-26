@@ -100,13 +100,27 @@ impl Square {
     }
 
     pub const fn forward(self, side: Side) -> Option<Self> {
-        let Some(rank) = self.rank().forward(side) else { return None };
-        Some(Self::new(self.file(), rank))
+        if self.rank().forward(side).is_some() {
+            Some(unsafe { self.forward_unchecked(side) })
+        } else {
+            None
+        }
+    }
+
+    /// # Safety
+    /// `Self::forward(side)` must return Some
+    pub const unsafe fn forward_unchecked(self, side: Side) -> Self {
+        unsafe { std::mem::transmute((self as i8).unchecked_add(side.forward() * 9)) }
     }
 
     pub const fn back(self, side: Side) -> Option<Self> {
-        let Some(rank) = self.rank().back(side) else { return None };
-        Some(Self::new(self.file(), rank))
+        self.forward(side.flip())
+    }
+
+    /// # Safety
+    /// `Self::back(side)` must return Some
+    pub const unsafe fn back_unchecked(self, side: Side) -> Self {
+        unsafe { self.forward_unchecked(side.flip()) }
     }
 
     pub const fn down(self) -> Option<Self> {
