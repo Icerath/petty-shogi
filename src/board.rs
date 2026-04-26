@@ -99,20 +99,24 @@ impl Pieces {
     }
 
     pub fn get(&self, sq: Square) -> Option<Piece> {
-        let side = if self.sides[Side::Sente].contains(sq) {
-            Side::Sente
-        } else if self.sides[Side::Gote].contains(sq) {
-            Side::Gote
-        } else {
-            return None;
-        };
-        let Some(kind) = self.kind(sq) else { unreachable!() };
+        let side = self.side(sq)?;
+        let Some(kind) = self.kind(sq) else { unsafe { std::hint::unreachable_unchecked() } };
         let promoted = self.promoted.contains(sq);
         Some(Piece::new(side, kind, promoted))
     }
 
     pub fn kind(&self, sq: Square) -> Option<PieceKind> {
         PieceKind::ALL.into_iter().find(|&kind| self.pieces[kind].contains(sq))
+    }
+
+    pub fn side(&self, sq: Square) -> Option<Side> {
+        if self.sides[Side::Sente].contains(sq) {
+            Some(Side::Sente)
+        } else if self.sides[Side::Gote].contains(sq) {
+            Some(Side::Gote)
+        } else {
+            None
+        }
     }
 }
 
