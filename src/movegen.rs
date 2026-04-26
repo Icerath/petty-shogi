@@ -178,29 +178,26 @@ impl Board {
             1 1 1 1 1 1 1 1 1
             1 1 1 1 1 1 1 1 1
         };
-        const GOTE_PROMOTE: Bitboard = SENTE_PROMOTE.flip();
-        const GOTE_NOPROMOTE: Bitboard = SENTE_NOPROMOTE.flip();
 
-        let pawns = self[PieceKind::Pawn] & !self.pieces.promoted & self[self.active];
+        const PROMOTE: [Bitboard; 2] = [SENTE_PROMOTE, SENTE_PROMOTE.flip()];
+        const NOPROMOTE: [Bitboard; 2] = [SENTE_NOPROMOTE, SENTE_NOPROMOTE.flip()];
 
-        macro_rules! moves {
-            ($side:expr, $($mask:ident: $promote:literal),*) => {{
-                let open_pawns = mask.shift_back($side);
-                $(
-                    (pawns & $mask & open_pawns).for_each(|sq| {
-                        r.recv(Action::Move {
-                            from: sq,
-                            to: unsafe { sq.forward($side).unwrap_unchecked() },
-                            promoted: $promote,
-                        })
-                    });
-                )*
-            }};
-        }
-        match self.active {
-            Side::Sente => moves!(Side::Sente, SENTE_NOPROMOTE: false, SENTE_PROMOTE: true),
-            Side::Gote => moves!(Side::Gote, GOTE_NOPROMOTE: false, GOTE_PROMOTE: true),
-        }
+        let mut pawns = self[PieceKind::Pawn] & !self.pieces.promoted & self[self.active];
+        pawns &= mask.shift_back(self.active);
+        (pawns & NOPROMOTE[self.active]).for_each(|sq| {
+            r.recv(Action::Move {
+                from: sq,
+                to: unsafe { sq.forward_unchecked(self.active) },
+                promoted: false,
+            })
+        });
+        (pawns & PROMOTE[self.active]).for_each(|sq| {
+            r.recv(Action::Move {
+                from: sq,
+                to: unsafe { sq.forward_unchecked(self.active) },
+                promoted: true,
+            })
+        });
     }
 
     fn lance_moves(&self, mask: Bitboard, r: &mut impl Receiver) {
