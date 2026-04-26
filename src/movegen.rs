@@ -59,6 +59,7 @@ impl Board {
     }
 
     #[must_use]
+    #[inline(always)]
     pub fn gen_attackers(&self, sq: Square, side: Side) -> Bitboard {
         let occupancy = self.pieces.all();
         macro_rules! attackers {
