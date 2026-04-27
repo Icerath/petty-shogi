@@ -68,8 +68,8 @@ impl Board {
         macro_rules! attackers {
             ($($bb:expr),* $(,)?) => {
                 let mut attackers = Bitboard::EMPTY;
-                $(attackers |= ($bb & self[!side]);)*
-                attackers
+                $(attackers |= $bb;)*
+                attackers & self[!side]
             };
         }
         attackers! {
