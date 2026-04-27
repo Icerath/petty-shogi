@@ -1,32 +1,39 @@
 pub mod magic;
 
+use std::ops::ControlFlow;
+
 use magic::{bishop_moves, lance_moves, rook_moves};
 
 use crate::{Action, Bitboard, Board, PieceKind, Rank, Side, Square, bitboard};
 pub trait Receiver {
-    fn recv(&mut self, action: Action);
+    fn recv(&mut self, action: Action) -> ControlFlow<()>;
 }
 
 impl Receiver for Vec<Action> {
-    fn recv(&mut self, action: Action) {
+    fn recv(&mut self, action: Action) -> ControlFlow<()> {
         self.push(action);
+        ControlFlow::Continue(())
     }
 }
 
 impl Receiver for &mut Vec<Action> {
-    fn recv(&mut self, action: Action) {
+    fn recv(&mut self, action: Action) -> ControlFlow<()> {
         (*self).recv(action)
     }
 }
 
 impl Receiver for u64 {
-    fn recv(&mut self, _: Action) {
+    fn recv(&mut self, _: Action) -> ControlFlow<()> {
         *self += 1;
+        ControlFlow::Continue(())
     }
 }
 
-impl<F: FnMut(Action)> Receiver for F {
-    fn recv(&mut self, action: Action) {
+impl<F> Receiver for F
+where
+    F: FnMut(Action) -> ControlFlow<()>,
+{
+    fn recv(&mut self, action: Action) -> ControlFlow<()> {
         (*self)(action)
     }
 }
@@ -42,7 +49,10 @@ impl Board {
             let mut board = self.clone();
             board.play(action);
             let mut any = false;
-            _ = board.legal_moves(|_| any = true);
+            _ = board.legal_moves(|_| {
+                any = true;
+                ControlFlow::Break(())
+            });
             if !any {
                 return false;
             }
@@ -95,8 +105,9 @@ impl Board {
     pub fn legal_moves<R: Receiver>(&self, mut r: R) -> R {
         _ = self.pseudolegal_moves(|mov| {
             if self.is_legal(mov) {
-                r.recv(mov)
+                r.recv(mov)?;
             }
+            ControlFlow::Continue(())
         });
         r
     }
@@ -107,21 +118,34 @@ impl Board {
             None => Bitboard::EMPTY,
         };
         let mask = !self[self.active];
-        if checkers.count() < 2 {
-            self.drop_moves(mask, &mut r);
-            self.pawn_moves(mask, &mut r);
-            self.lance_moves(mask, &mut r);
-            self.knight_moves(mask, &mut r);
-            self.silver_moves(mask, &mut r);
-            self.gold_moves(mask, &mut r);
-            self.bishop_moves(mask, &mut r);
-            self.rook_moves(mask, &mut r);
+
+        macro_rules! moves {
+            ($($ident:ident),* $(,)?) => {
+                $(if self.$ident(mask, &mut r).is_break() {
+                    return r;
+                });*
+
+
+            };
         }
-        self.king_moves(mask, &mut r);
+
+        if checkers.count() < 2 {
+            moves!(
+                drop_moves,
+                pawn_moves,
+                lance_moves,
+                knight_moves,
+                silver_moves,
+                gold_moves,
+                bishop_moves,
+                rook_moves
+            );
+        }
+        moves!(king_moves);
         r
     }
 
-    fn drop_moves(&self, mask: Bitboard, r: &mut impl Receiver) {
+    fn drop_moves(&self, mask: Bitboard, r: &mut impl Receiver) -> ControlFlow<()> {
         let empty_squares = mask & !self[!self.active];
 
         macro_rules! drop {
@@ -137,28 +161,29 @@ impl Board {
                 busy_files |= sq.file().mask();
             });
             (empty_squares & !self.active.end_rank().mask() & !busy_files)
-                .for_each(|sq| drop!(PieceKind::Pawn, sq));
+                .try_for_each(|sq| drop!(PieceKind::Pawn, sq))?;
         }
         // lances
         if self.hands[self.active][PieceKind::Lance] > 0 {
             (empty_squares & !self.active.end_rank().mask())
-                .for_each(|sq| drop!(PieceKind::Lance, sq));
+                .try_for_each(|sq| drop!(PieceKind::Lance, sq))?;
         }
         // knights
         if self.hands[self.active][PieceKind::Knight] > 0 {
             (empty_squares & !self.active.promotion_zone().shift_forward(self.active))
-                .for_each(|sq| drop!(PieceKind::Knight, sq));
+                .try_for_each(|sq| drop!(PieceKind::Knight, sq))?;
         }
         // rest
         for &piece in &PieceKind::ALL[PieceKind::Silver as usize..PieceKind::King as usize] {
             if self.hands[self.active][piece] == 0 {
                 continue;
             }
-            empty_squares.for_each(|sq| drop!(piece, sq));
+            empty_squares.try_for_each(|sq| drop!(piece, sq))?;
         }
+        ControlFlow::Continue(())
     }
 
-    fn pawn_moves(&self, mask: Bitboard, r: &mut impl Receiver) {
+    fn pawn_moves(&self, mask: Bitboard, r: &mut impl Receiver) -> ControlFlow<()> {
         const SENTE_PROMOTE: Bitboard = bitboard! {
             0 0 0 0 0 0 0 0 0
             1 1 1 1 1 1 1 1 1
@@ -187,49 +212,50 @@ impl Board {
 
         let mut pawns = self[PieceKind::Pawn] & !self.pieces.promoted & self[self.active];
         pawns &= mask.shift_back(self.active);
-        (pawns & NOPROMOTE[self.active]).for_each(|sq| {
+        (pawns & NOPROMOTE[self.active]).try_for_each(|sq| {
             r.recv(Action::Move {
                 from: sq,
                 to: unsafe { sq.forward_unchecked(self.active) },
                 promoted: false,
             })
-        });
-        (pawns & PROMOTE[self.active]).for_each(|sq| {
+        })?;
+        (pawns & PROMOTE[self.active]).try_for_each(|sq| {
             r.recv(Action::Move {
                 from: sq,
                 to: unsafe { sq.forward_unchecked(self.active) },
                 promoted: true,
             })
-        });
+        })
     }
 
-    fn lance_moves(&self, mask: Bitboard, r: &mut impl Receiver) {
+    fn lance_moves(&self, mask: Bitboard, r: &mut impl Receiver) -> ControlFlow<()> {
         (self[PieceKind::Lance] & !self.pieces.promoted & self[self.active])
-            .for_each(|sq| lance(self, mask, sq, r));
+            .try_for_each(|sq| lance(self, mask, sq, r))
     }
 
-    fn knight_moves(&self, mask: Bitboard, r: &mut impl Receiver) {
+    fn knight_moves(&self, mask: Bitboard, r: &mut impl Receiver) -> ControlFlow<()> {
         (self[PieceKind::Knight] & !self.pieces.promoted & self[self.active])
-            .for_each(|sq| knight(self, mask, sq, r));
+            .try_for_each(|sq| knight(self, mask, sq, r))
     }
 
-    fn silver_moves(&self, mask: Bitboard, r: &mut impl Receiver) {
+    fn silver_moves(&self, mask: Bitboard, r: &mut impl Receiver) -> ControlFlow<()> {
         let bb = self[PieceKind::Silver] & !self.pieces.promoted & self[self.active];
-        bb.for_each(|sq| silver(self, mask, sq, r));
+        bb.try_for_each(|sq| silver(self, mask, sq, r))?;
         let promotion_escape = if self.active == Side::Sente { Rank::C } else { Rank::G };
-        (bb & promotion_escape.mask()).for_each(|sq| {
+        (bb & promotion_escape.mask()).try_for_each(|sq| {
             let back = unsafe { sq.back(self.active).unwrap_unchecked() };
             if let Some(left) = back.left()
                 && !self[self.active].contains(left)
             {
-                r.recv(Action::Move { from: sq, to: left, promoted: true });
+                r.recv(Action::Move { from: sq, to: left, promoted: true })?;
             }
             if let Some(right) = back.right()
                 && !self[self.active].contains(right)
             {
-                r.recv(Action::Move { from: sq, to: right, promoted: true });
+                r.recv(Action::Move { from: sq, to: right, promoted: true })?;
             }
-        });
+            ControlFlow::Continue(())
+        })
     }
 
     fn gold_move_pieces(&self) -> Bitboard {
@@ -240,56 +266,57 @@ impl Board {
         (promoted_to_gold & self.pieces.promoted) | self[PieceKind::Gold]
     }
 
-    fn gold_moves(&self, mask: Bitboard, r: &mut impl Receiver) {
+    fn gold_moves(&self, mask: Bitboard, r: &mut impl Receiver) -> ControlFlow<()> {
         let bb = self.gold_move_pieces() & self[self.active];
-        bb.for_each(|sq| gold(self, mask, sq, r));
+        bb.try_for_each(|sq| gold(self, mask, sq, r))
     }
 
-    fn bishop_moves(&self, mask: Bitboard, r: &mut impl Receiver) {
+    fn bishop_moves(&self, mask: Bitboard, r: &mut impl Receiver) -> ControlFlow<()> {
         (self[PieceKind::Bishop] & self[self.active] & !self.pieces.promoted)
-            .for_each(|sq| bishop::<false>(self, mask, sq, r));
+            .try_for_each(|sq| bishop::<false>(self, mask, sq, r))?;
         (self[PieceKind::Bishop] & self[self.active] & self.pieces.promoted)
-            .for_each(|sq| bishop::<true>(self, mask, sq, r));
+            .try_for_each(|sq| bishop::<true>(self, mask, sq, r))
     }
 
     #[inline(never)]
-    fn rook_moves(&self, mask: Bitboard, r: &mut impl Receiver) {
+    fn rook_moves(&self, mask: Bitboard, r: &mut impl Receiver) -> ControlFlow<()> {
         (self[PieceKind::Rook] & self[self.active] & !self.pieces.promoted)
-            .for_each(|sq| rook::<false>(self, mask, sq, r));
+            .try_for_each(|sq| rook::<false>(self, mask, sq, r))?;
         (self[PieceKind::Rook] & self[self.active] & self.pieces.promoted)
-            .for_each(|sq| rook::<true>(self, mask, sq, r));
+            .try_for_each(|sq| rook::<true>(self, mask, sq, r))
     }
 
-    fn king_moves(&self, mask: Bitboard, r: &mut impl Receiver) {
-        (self[PieceKind::King] & self[self.active]).for_each(|sq| king(mask, sq, r));
+    fn king_moves(&self, mask: Bitboard, r: &mut impl Receiver) -> ControlFlow<()> {
+        (self[PieceKind::King] & self[self.active]).try_for_each(|sq| king(mask, sq, r))
     }
 }
 
-fn lance(board: &Board, mask: Bitboard, sq: Square, r: &mut impl Receiver) {
+fn lance(board: &Board, mask: Bitboard, sq: Square, r: &mut impl Receiver) -> ControlFlow<()> {
     let bb = lance_moves(sq, board.pieces.all(), board.active) & mask;
     let end_rank = board.active.end_rank();
-    (bb & !end_rank.mask()).for_each(|to| r.recv(Action::Move { from: sq, to, promoted: false }));
+    (bb & !end_rank.mask())
+        .try_for_each(|to| r.recv(Action::Move { from: sq, to, promoted: false }))?;
     (bb & board.active.promotion_zone())
-        .for_each(|to| r.recv(Action::Move { from: sq, to, promoted: true }));
+        .try_for_each(|to| r.recv(Action::Move { from: sq, to, promoted: true }))
 }
 
-fn knight(board: &Board, mask: Bitboard, sq: Square, r: &mut impl Receiver) {
+fn knight(board: &Board, mask: Bitboard, sq: Square, r: &mut impl Receiver) -> ControlFlow<()> {
     (KNIGHT_LUT[board.active][sq] & mask)
-        .for_each(|to| r.recv(Action::Move { from: sq, to, promoted: false }));
+        .try_for_each(|to| r.recv(Action::Move { from: sq, to, promoted: false }))?;
     (KNIGHT_PROMOTION_LUT[board.active][sq] & mask)
-        .for_each(|to| r.recv(Action::Move { from: sq, to, promoted: true }));
+        .try_for_each(|to| r.recv(Action::Move { from: sq, to, promoted: true }))
 }
 
-fn silver(board: &Board, mask: Bitboard, sq: Square, r: &mut impl Receiver) {
+fn silver(board: &Board, mask: Bitboard, sq: Square, r: &mut impl Receiver) -> ControlFlow<()> {
     let bb = SILVER_LUT[board.active][sq] & mask;
-    bb.for_each(|to| r.recv(Action::Move { from: sq, to, promoted: false }));
+    bb.try_for_each(|to| r.recv(Action::Move { from: sq, to, promoted: false }))?;
     (bb & board.active.promotion_zone())
-        .for_each(|to| r.recv(Action::Move { from: sq, to, promoted: true }));
+        .try_for_each(|to| r.recv(Action::Move { from: sq, to, promoted: true }))
 }
 
-fn gold(board: &Board, mask: Bitboard, sq: Square, r: &mut impl Receiver) {
+fn gold(board: &Board, mask: Bitboard, sq: Square, r: &mut impl Receiver) -> ControlFlow<()> {
     (GOLD_LUT[board.active][sq] & mask)
-        .for_each(|to| r.recv(Action::Move { from: sq, to, promoted: false }));
+        .try_for_each(|to| r.recv(Action::Move { from: sq, to, promoted: false }))
 }
 
 fn bishop_rook_finish<const PROMOTED: bool>(
@@ -298,34 +325,43 @@ fn bishop_rook_finish<const PROMOTED: bool>(
     mut bb: Bitboard,
     sq: Square,
     r: &mut impl Receiver,
-) {
+) -> ControlFlow<()> {
     if PROMOTED {
         bb |= KING_LUT[sq];
     }
     bb &= mask;
-    bb.for_each(|to| r.recv(Action::Move { from: sq, to, promoted: false }));
+    bb.try_for_each(|to| r.recv(Action::Move { from: sq, to, promoted: false }))?;
     if !PROMOTED {
         if sq.is_promotion_zone(board.active) {
-            bb.for_each(|to| r.recv(Action::Move { from: sq, to, promoted: true }));
+            bb.try_for_each(|to| r.recv(Action::Move { from: sq, to, promoted: true }))?;
         } else {
             (bb & board.active.promotion_zone())
-                .for_each(|to| r.recv(Action::Move { from: sq, to, promoted: true }));
+                .try_for_each(|to| r.recv(Action::Move { from: sq, to, promoted: true }))?;
         }
     }
+    ControlFlow::Continue(())
 }
 
-fn bishop<const PROMOTED: bool>(board: &Board, mask: Bitboard, sq: Square, r: &mut impl Receiver) {
-    bishop_rook_finish::<PROMOTED>(board, mask, bishop_moves(sq, board.pieces.all()), sq, r);
+fn bishop<const PROMOTED: bool>(
+    board: &Board,
+    mask: Bitboard,
+    sq: Square,
+    r: &mut impl Receiver,
+) -> ControlFlow<()> {
+    bishop_rook_finish::<PROMOTED>(board, mask, bishop_moves(sq, board.pieces.all()), sq, r)
 }
 
-fn rook<const PROMOTED: bool>(board: &Board, mask: Bitboard, sq: Square, r: &mut impl Receiver) {
-    bishop_rook_finish::<PROMOTED>(board, mask, rook_moves(sq, board.pieces.all()), sq, r);
+fn rook<const PROMOTED: bool>(
+    board: &Board,
+    mask: Bitboard,
+    sq: Square,
+    r: &mut impl Receiver,
+) -> ControlFlow<()> {
+    bishop_rook_finish::<PROMOTED>(board, mask, rook_moves(sq, board.pieces.all()), sq, r)
 }
 
-fn king(mask: Bitboard, sq: Square, r: &mut impl Receiver) {
-    (KING_LUT[sq] & mask).for_each(|to| {
-        r.recv(Action::Move { from: sq, to, promoted: false });
-    });
+fn king(mask: Bitboard, sq: Square, r: &mut impl Receiver) -> ControlFlow<()> {
+    (KING_LUT[sq] & mask).try_for_each(|to| r.recv(Action::Move { from: sq, to, promoted: false }))
 }
 
 static KNIGHT_LUT: [[Bitboard; 81]; 2] = [compute_knight(Side::Sente), compute_knight(Side::Gote)];

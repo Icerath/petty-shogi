@@ -1,3 +1,5 @@
+use std::ops::ControlFlow;
+
 use crate::board::Board;
 
 impl Board {
@@ -14,6 +16,7 @@ impl Board {
             self.play(mov);
             sum += self.perft(depth - 1);
             *self = copy;
+            ControlFlow::Continue(())
         });
         sum
     }
@@ -27,6 +30,7 @@ impl Board {
             println!("{mov}: {positions}");
             sum += positions;
             *self = copy;
+            ControlFlow::Continue(())
         });
         sum
     }

@@ -1,6 +1,6 @@
 use std::{
     fmt::{self, Write as _},
-    ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, Not},
+    ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, ControlFlow, Not},
 };
 
 use konst::array::from_fn;
@@ -64,6 +64,14 @@ impl Bitboard {
             f(next);
             self.bitscan_pop();
         }
+    }
+
+    pub fn try_for_each(mut self, mut f: impl FnMut(Square) -> ControlFlow<()>) -> ControlFlow<()> {
+        while let Some(next) = self.bitscan() {
+            f(next)?;
+            self.bitscan_pop();
+        }
+        ControlFlow::Continue(())
     }
 
     #[must_use]
