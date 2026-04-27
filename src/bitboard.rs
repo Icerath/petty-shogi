@@ -8,7 +8,7 @@ use konst::array::from_fn;
 use crate::{File, Rank, Side, Square, bitboard};
 
 #[derive(Default, Clone, Copy, PartialEq, Eq)]
-pub struct Bitboard(u128);
+pub struct Bitboard(pub u128);
 
 impl Bitboard {
     pub const EMPTY: Self = Self(0);

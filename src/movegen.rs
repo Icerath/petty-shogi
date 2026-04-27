@@ -1,5 +1,8 @@
-use crate::{Action, Bitboard, Board, PieceKind, Rank, Side, Square, bitboard};
+pub mod magic;
 
+use magic::{bishop_moves, lance_moves, rook_moves};
+
+use crate::{Action, Bitboard, Board, PieceKind, Rank, Side, Square, bitboard};
 pub trait Receiver {
     fn recv(&mut self, action: Action);
 }
@@ -71,12 +74,12 @@ impl Board {
         }
         attackers! {
             (self[PieceKind::Pawn] & !self.pieces.promoted) & sq.forward(side).map_or(Bitboard::EMPTY, Square::mask),
-            slide(sq, occupancy, 0, side.forward()) & self[PieceKind::Lance] & !self.pieces.promoted,
+            lance_moves(sq, occupancy, side) & self[PieceKind::Lance] & !self.pieces.promoted,
             KNIGHT_LUT[side][sq] & self[PieceKind::Knight] & !self.pieces.promoted,
             SILVER_LUT[side][sq] & self[PieceKind::Silver] & !self.pieces.promoted,
             GOLD_LUT[side][sq] & self.gold_move_pieces(),
-            bishop_bb(occupancy, sq) & self[PieceKind::Bishop],
-            rook_bb(occupancy, sq) & self[PieceKind::Rook],
+            bishop_moves(sq, occupancy) & self[PieceKind::Bishop],
+            rook_moves(sq, occupancy) & self[PieceKind::Rook],
             KING_LUT[sq] & (self[PieceKind::King] | ((self[PieceKind::Bishop] | self[PieceKind::Rook]) & self.pieces.promoted)),
         }
     }
@@ -263,7 +266,7 @@ impl Board {
 }
 
 fn lance(board: &Board, mask: Bitboard, sq: Square, r: &mut impl Receiver) {
-    let bb = slide(sq, board.pieces.all(), 0, board.active.forward()) & mask;
+    let bb = lance_moves(sq, board.pieces.all(), board.active) & mask;
     let end_rank = board.active.end_rank();
     (bb & !end_rank.mask()).for_each(|to| r.recv(Action::Move { from: sq, to, promoted: false }));
     (bb & board.active.promotion_zone())
@@ -312,27 +315,11 @@ fn bishop_rook_finish<const PROMOTED: bool>(
 }
 
 fn bishop<const PROMOTED: bool>(board: &Board, mask: Bitboard, sq: Square, r: &mut impl Receiver) {
-    bishop_rook_finish::<PROMOTED>(board, mask, bishop_bb(board.pieces.all(), sq), sq, r);
+    bishop_rook_finish::<PROMOTED>(board, mask, bishop_moves(sq, board.pieces.all()), sq, r);
 }
 
 fn rook<const PROMOTED: bool>(board: &Board, mask: Bitboard, sq: Square, r: &mut impl Receiver) {
-    bishop_rook_finish::<PROMOTED>(board, mask, rook_bb(board.pieces.all(), sq), sq, r);
-}
-
-fn bishop_bb(occupancy: Bitboard, sq: Square) -> Bitboard {
-    let mut bb = Bitboard::EMPTY;
-    for (h, v) in [(1, 1), (1, -1), (-1, 1), (-1, -1)] {
-        bb |= slide(sq, occupancy, h, v)
-    }
-    bb
-}
-
-fn rook_bb(occupancy: Bitboard, sq: Square) -> Bitboard {
-    let mut bb = Bitboard::EMPTY;
-    for (h, v) in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
-        bb |= slide(sq, occupancy, h, v)
-    }
-    bb
+    bishop_rook_finish::<PROMOTED>(board, mask, rook_moves(sq, board.pieces.all()), sq, r);
 }
 
 fn king(mask: Bitboard, sq: Square, r: &mut impl Receiver) {
@@ -490,17 +477,4 @@ const fn compute_king() -> [Bitboard; 81] {
         index += 1;
     }
     moves
-}
-
-#[must_use]
-fn slide(mut from: Square, occupancy: Bitboard, h: i8, v: i8) -> Bitboard {
-    let mut output = Bitboard::EMPTY;
-    while let Some(sq) = from.offset_file_rank(h, v) {
-        from = sq;
-        output.insert(sq);
-        if occupancy.contains(sq) {
-            break;
-        }
-    }
-    output
 }
