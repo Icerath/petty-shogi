@@ -1,32 +1,29 @@
+use std::ops::ControlFlow;
+
 use crate::board::Board;
 
 impl Board {
-    pub fn perft(&mut self, depth: u64) -> u64 {
-        if depth == 0 {
-            return 1;
-        }
-        if depth == 1 {
-            return self.legal_moves(0);
-        }
-        let mut sum = 0;
-        self.legal_moves(|mov| {
-            let mut copy = self.clone();
-            copy.play(mov);
-            sum += copy.perft(depth - 1);
-        });
-        sum
+    pub fn perft(&self, depth: u32) -> u64 {
+        self.try_perft(depth, &mut || false).continue_value().unwrap()
     }
 
-    pub fn print_perft(&mut self, depth: u64) -> u64 {
+    pub fn try_perft(&self, depth: u32, stop: &mut impl FnMut() -> bool) -> ControlFlow<(), u64> {
+        if stop() {
+            return ControlFlow::Break(());
+        }
+        match depth {
+            0 => return ControlFlow::Continue(1),
+            1 => return ControlFlow::Continue(self.legal_moves(0)),
+            _ => {}
+        }
         let mut sum = 0;
         self.legal_moves(|mov| {
-            let mut copy = self.clone();
-            copy.play(mov);
-            let positions = copy.perft(depth - 1);
-            println!("{mov}: {positions}");
-            sum += positions;
-        });
-        sum
+            let mut board = self.clone();
+            board.play(mov);
+            sum += board.try_perft(depth - 1, stop)?;
+            ControlFlow::Continue(())
+        })?;
+        ControlFlow::Continue(sum)
     }
 }
 
