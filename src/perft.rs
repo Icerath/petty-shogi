@@ -1,5 +1,3 @@
-use std::ops::ControlFlow;
-
 use crate::board::Board;
 
 impl Board {
@@ -11,26 +9,24 @@ impl Board {
             return self.legal_moves(0);
         }
         let mut sum = 0;
-        _ = self.clone().legal_moves(|mov| {
+        self.clone().legal_moves(|mov| {
             let copy = self.clone();
             self.play(mov);
             sum += self.perft(depth - 1);
             *self = copy;
-            ControlFlow::Continue(())
         });
         sum
     }
 
     pub fn print_perft(&mut self, depth: u64) -> u64 {
         let mut sum = 0;
-        _ = self.clone().legal_moves(|mov| {
+        self.clone().legal_moves(|mov| {
             let copy = self.clone();
             self.play(mov);
             let positions = self.perft(depth - 1);
             println!("{mov}: {positions}");
             sum += positions;
             *self = copy;
-            ControlFlow::Continue(())
         });
         sum
     }

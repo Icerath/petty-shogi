@@ -1,11 +1,11 @@
 use std::{
     fmt::{self, Write as _},
-    ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, ControlFlow, Not},
+    ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, Not},
 };
 
 use konst::array::from_fn;
 
-use crate::{File, Rank, Side, Square, bitboard};
+use crate::{File, Rank, Side, Square, Try, bitboard};
 
 #[derive(Default, Clone, Copy, PartialEq, Eq)]
 pub struct Bitboard(pub u128);
@@ -59,19 +59,12 @@ impl Bitboard {
         self.0.count_ones()
     }
 
-    pub fn for_each(mut self, mut f: impl FnMut(Square)) {
+    pub fn for_each<T: Try>(mut self, mut f: impl FnMut(Square) -> T) -> T {
         while let Some(next) = self.bitscan() {
-            f(next);
+            crate::ptry!(f(next));
             self.bitscan_pop();
         }
-    }
-
-    pub fn try_for_each(mut self, mut f: impl FnMut(Square) -> ControlFlow<()>) -> ControlFlow<()> {
-        while let Some(next) = self.bitscan() {
-            f(next)?;
-            self.bitscan_pop();
-        }
-        ControlFlow::Continue(())
+        T::output()
     }
 
     #[must_use]
