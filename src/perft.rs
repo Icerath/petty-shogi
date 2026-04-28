@@ -9,24 +9,22 @@ impl Board {
             return self.legal_moves(0);
         }
         let mut sum = 0;
-        self.clone().legal_moves(|mov| {
-            let copy = self.clone();
-            self.play(mov);
-            sum += self.perft(depth - 1);
-            *self = copy;
+        self.legal_moves(|mov| {
+            let mut copy = self.clone();
+            copy.play(mov);
+            sum += copy.perft(depth - 1);
         });
         sum
     }
 
     pub fn print_perft(&mut self, depth: u64) -> u64 {
         let mut sum = 0;
-        self.clone().legal_moves(|mov| {
-            let copy = self.clone();
-            self.play(mov);
-            let positions = self.perft(depth - 1);
+        self.legal_moves(|mov| {
+            let mut copy = self.clone();
+            copy.play(mov);
+            let positions = copy.perft(depth - 1);
             println!("{mov}: {positions}");
             sum += positions;
-            *self = copy;
         });
         sum
     }
