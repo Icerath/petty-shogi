@@ -20,21 +20,19 @@ impl Board {
     }
 
     pub fn is_legal(&self, action: Action) -> bool {
+        let mut board = self.clone();
+        board.play(action);
+
         // check for pawn drop mate
         if let Action::Drop { piece, to } = action
             && piece == PieceKind::Pawn
             && (self[PieceKind::King] & self[!self.active])
                 .contains(to.forward(self.active).unwrap())
+            && !board.has_legal_move(action)
         {
-            let mut board = self.clone();
-            board.play(action);
-            if !self.has_legal_move(action) {
-                return false;
-            }
+            return false;
         }
 
-        let mut board = self.clone();
-        board.play(action);
         let Some(king_square) = (board[PieceKind::King] & board[self.active]).bitscan() else {
             return true;
         };
