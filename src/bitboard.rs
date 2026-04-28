@@ -16,7 +16,7 @@ impl Bitboard {
 
     #[must_use]
     pub const fn from_square(sq: Square) -> Self {
-        const LUT: [Bitboard; 81] = from_fn!(|i| Bitboard(1u128 << i));
+        static LUT: [Bitboard; 81] = from_fn!(|i| Bitboard(1u128 << i));
         LUT[sq as usize]
     }
 
@@ -33,7 +33,7 @@ impl Bitboard {
             0 0 0 0 0 0 0 0 0
             0 0 0 0 0 0 0 0 0
         };
-        const LUT: [Bitboard; 9] = from_fn!(|rank| Bitboard(RANK0.0 << (rank as u128 * 9)));
+        static LUT: [Bitboard; 9] = from_fn!(|rank| Bitboard(RANK0.0 << (rank as u128 * 9)));
         LUT[rank as usize]
     }
 
@@ -50,7 +50,7 @@ impl Bitboard {
             1 0 0 0 0 0 0 0 0
             1 0 0 0 0 0 0 0 0
         };
-        const LUT: [Bitboard; 9] = from_fn!(|file| Bitboard(FILE0.0 << (file as u128)));
+        static LUT: [Bitboard; 9] = from_fn!(|file| Bitboard(FILE0.0 << (file as u128)));
         LUT[file as usize]
     }
 

@@ -111,8 +111,8 @@ impl Board {
             1 1 1 1 1 1 1 1 1
         };
 
-        const PROMOTE: [Bitboard; 2] = [SENTE_PROMOTE, SENTE_PROMOTE.flip()];
-        const NOPROMOTE: [Bitboard; 2] = [SENTE_NOPROMOTE, SENTE_NOPROMOTE.flip()];
+        static PROMOTE: [Bitboard; 2] = [SENTE_PROMOTE, SENTE_PROMOTE.flip()];
+        static NOPROMOTE: [Bitboard; 2] = [SENTE_NOPROMOTE, SENTE_NOPROMOTE.flip()];
 
         let mut pawns = self[PieceKind::Pawn] & !self.pieces.promoted & self[self.active];
         pawns &= mask.shift_back(self.active);
