@@ -12,11 +12,11 @@ pub struct Bitboard(pub u128);
 
 impl Bitboard {
     pub const EMPTY: Self = Self(0);
-    pub const FULL: Self = Self(u128::MAX >> (128 - 81));
+    pub const FULL: Self = Self(u128::MAX >> (128 - Square::LEN));
 
     #[must_use]
     pub const fn from_square(sq: Square) -> Self {
-        static LUT: [Bitboard; 81] = from_fn!(|i| Bitboard(1u128 << i));
+        static LUT: [Bitboard; Square::LEN] = from_fn!(|i| Bitboard(1u128 << i));
         LUT[sq as usize]
     }
 
@@ -111,10 +111,10 @@ impl Bitboard {
         new
     }
 
-    pub const fn from_bits(bits: [bool; 81]) -> Self {
+    pub const fn from_bits(bits: [bool; Square::LEN]) -> Self {
         let mut bb = Bitboard::EMPTY;
         let mut i = 0;
-        while i < 81 {
+        while (i as usize) < Square::LEN {
             if bits[i as usize] {
                 bb.insert(Square::from_int(i).unwrap());
             }
@@ -270,7 +270,7 @@ mod tests {
 
     #[test]
     fn full81() {
-        assert_eq!(Bitboard::FULL.count(), 81);
+        assert_eq!(Bitboard::FULL.count(), Square::LEN as u32);
     }
 
     #[test]

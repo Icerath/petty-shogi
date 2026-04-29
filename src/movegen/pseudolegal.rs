@@ -4,16 +4,17 @@ use super::{
 };
 use crate::{Action, Bitboard, Board, PieceKind, Rank, Side, Square, Try, bitboard, ptry};
 
-pub static KNIGHT_LUT: [[Bitboard; 81]; 2] =
+pub static KNIGHT_LUT: [[Bitboard; Square::LEN]; 2] =
     [compute_knight(Side::Sente), compute_knight(Side::Gote)];
-pub static KNIGHT_PROMOTION_LUT: [[Bitboard; 81]; 2] =
+pub static KNIGHT_PROMOTION_LUT: [[Bitboard; Square::LEN]; 2] =
     [compute_knight_promotion(Side::Sente), compute_knight_promotion(Side::Gote)];
 
-pub static SILVER_LUT: [[Bitboard; 81]; 2] =
+pub static SILVER_LUT: [[Bitboard; Square::LEN]; 2] =
     [compute_silver(Side::Sente), compute_silver(Side::Gote)];
 
-pub static GOLD_LUT: [[Bitboard; 81]; 2] = [compute_gold(Side::Sente), compute_gold(Side::Gote)];
-pub static KING_LUT: [Bitboard; 81] = compute_king();
+pub static GOLD_LUT: [[Bitboard; Square::LEN]; 2] =
+    [compute_gold(Side::Sente), compute_gold(Side::Gote)];
+pub static KING_LUT: [Bitboard; Square::LEN] = compute_king();
 
 impl Board {
     pub(crate) fn pseudolegal_moves_<R: Receiver>(&self, r: &mut R) -> R::Result {
@@ -278,10 +279,10 @@ fn king<R: Receiver>(mask: Bitboard, sq: Square, r: &mut R) -> R::Result {
     (KING_LUT[sq] & mask).for_each(|to| r.recv(Action::Move { from: sq, to, promoted: false }))
 }
 
-const fn compute_knight(side: Side) -> [Bitboard; 81] {
-    let mut moves = [Bitboard::EMPTY; 81];
+const fn compute_knight(side: Side) -> [Bitboard; Square::LEN] {
+    let mut moves = [Bitboard::EMPTY; Square::LEN];
     let mut i = 0;
-    while i < 81 {
+    while (i as usize) < Square::LEN {
         let sq = Square::from_int(i).unwrap();
         if sq.nforward(side, 4).is_none() {
             i += 1;
@@ -300,10 +301,10 @@ const fn compute_knight(side: Side) -> [Bitboard; 81] {
     moves
 }
 
-const fn compute_knight_promotion(side: Side) -> [Bitboard; 81] {
-    let mut moves = [Bitboard::EMPTY; 81];
+const fn compute_knight_promotion(side: Side) -> [Bitboard; Square::LEN] {
+    let mut moves = [Bitboard::EMPTY; Square::LEN];
     let mut i = 0;
-    while i < 81 {
+    while (i as usize) < Square::LEN {
         let sq = Square::from_int(i).unwrap();
         let Some(forward) = sq.nforward(side, 2) else {
             i += 1;
@@ -325,10 +326,10 @@ const fn compute_knight_promotion(side: Side) -> [Bitboard; 81] {
     moves
 }
 
-const fn compute_silver(side: Side) -> [Bitboard; 81] {
-    let mut moves = [Bitboard::EMPTY; 81];
+const fn compute_silver(side: Side) -> [Bitboard; Square::LEN] {
+    let mut moves = [Bitboard::EMPTY; Square::LEN];
     let mut index = 0;
-    while index < 81 {
+    while (index as usize) < Square::LEN {
         let sq = Square::from_int(index).unwrap();
         let mut bb = Bitboard::EMPTY;
         if let Some(forward) = sq.rank().forward(side) {
@@ -354,10 +355,10 @@ const fn compute_silver(side: Side) -> [Bitboard; 81] {
     moves
 }
 
-const fn compute_gold(side: Side) -> [Bitboard; 81] {
-    let mut moves = [Bitboard::EMPTY; 81];
+const fn compute_gold(side: Side) -> [Bitboard; Square::LEN] {
+    let mut moves = [Bitboard::EMPTY; Square::LEN];
     let mut index = 0;
-    while index < 81 {
+    while (index as usize) < Square::LEN {
         let sq = Square::from_int(index).unwrap();
         let mut bb = Bitboard::EMPTY;
         if let Some(left) = sq.file().left() {
@@ -384,10 +385,10 @@ const fn compute_gold(side: Side) -> [Bitboard; 81] {
     moves
 }
 
-const fn compute_king() -> [Bitboard; 81] {
-    let mut moves = [Bitboard::EMPTY; 81];
+const fn compute_king() -> [Bitboard; Square::LEN] {
+    let mut moves = [Bitboard::EMPTY; Square::LEN];
     let mut index = 0;
-    while index < 81 {
+    while (index as usize) < Square::LEN {
         let sq = Square::from_int(index).unwrap();
         let mut bb = Bitboard::EMPTY;
         if let Some(left) = sq.file().left() {

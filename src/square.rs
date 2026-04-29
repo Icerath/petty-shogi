@@ -37,7 +37,7 @@ impl Square {
 
     pub const fn as_str(self) -> &'static str {
         #[rustfmt::skip]
-        static NAMES: [&str; 81] = [
+        static NAMES: [&str; Square::LEN] = [
             "9a", "8a", "7a", "6a", "5a", "4a", "3a", "2a", "1a",
             "9b", "8b", "7b", "6b", "5b", "4b", "3b", "2b", "1b",
             "9c", "8c", "7c", "6c", "5c", "4c", "3c", "2c", "1c",
@@ -70,7 +70,7 @@ impl Square {
     pub const fn flip(self) -> Self {
         use Square::*;
         #[rustfmt::skip]
-        static FLIPPED: [Square; 81] = [
+        static FLIPPED: [Square; Square::LEN] = [
             I9, I8, I7, I6, I5, I4, I3, I2, I1,
             H9, H8, H7, H6, H5, H4, H3, H2, H1,
             G9, G8, G7, G6, G5, G4, G3, G2, G1,

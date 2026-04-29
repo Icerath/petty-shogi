@@ -15,7 +15,7 @@ impl Entry {
 }
 
 #[rustfmt::skip]
-static BISHOP_ENTRIES: [Entry; 81] = [
+static BISHOP_ENTRIES: [Entry; Square::LEN] = [
     Entry { mask: Bitboard(0x401004010040100400), magic: 0x2004120010801204, shift: 0x39, offset: 0x0 },
     Entry { mask: Bitboard(0x2008020080200800), magic: 0x441120808401201, shift: 0x3a, offset: 0x80 },
     Entry { mask: Bitboard(0x10040100401400), magic: 0x8088090450124040, shift: 0x3a, offset: 0xc0 },
@@ -100,7 +100,7 @@ static BISHOP_ENTRIES: [Entry; 81] = [
 ];
 
 #[rustfmt::skip]
-static ROOK_ENTRIES: [Entry; 81] = [
+static ROOK_ENTRIES: [Entry; Square::LEN] = [
     Entry { mask: Bitboard(0x80402010080402fe), magic: 0x424000040948c100, shift: 0x32, offset: 0x0 },
     Entry { mask: Bitboard(0x100804020100804fc), magic: 0x8020008200005480, shift: 0x33, offset: 0x4000 },
     Entry { mask: Bitboard(0x201008040201008fa), magic: 0x40024400002140, shift: 0x33, offset: 0x6000 },
