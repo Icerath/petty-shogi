@@ -9,7 +9,7 @@ struct Entry {
 impl Entry {
     fn index(&self, blockers: Bitboard) -> usize {
         let blockers = blockers & self.mask;
-        let hash = merge(blockers.0).wrapping_mul(self.magic);
+        let hash = ((blockers.0 >> 63 | blockers.0) as u64).wrapping_mul(self.magic);
         ((hash >> self.shift) + self.offset as u64) as usize
     }
 }
@@ -183,7 +183,3 @@ static ROOK_ENTRIES: [Entry; 81] = [
     Entry { mask: Bitboard(0x7e402010080402010000), magic: 0x15200084080004, shift: 0x33, offset: 0x7a000 },
     Entry { mask: Bitboard(0xfe804020100804020000), magic: 0x800120008409a882, shift: 0x32, offset: 0x7c000 },
 ];
-
-const fn merge(x: u128) -> u64 {
-    ((x >> 63) | x) as u64
-}
