@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use crate::Action;
 
 #[derive(Debug)]
@@ -12,6 +10,8 @@ pub enum Command {
     Stop,
     PonderHit,
     GameOver(GameOver),
+    /// not part of the USI spec
+    Display,
     Quit,
 }
 
@@ -28,6 +28,7 @@ pub struct GoCommand {
     pub mate: Option<u32>,
     pub movetime: Option<u32>,
     pub infinite: bool,
+    /// not part of the USI spec
     pub perft: Option<u32>,
 }
 
@@ -43,31 +44,28 @@ pub enum GameOver {
     Draw,
 }
 
-impl FromStr for Command {
-    type Err = ();
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut split = s.split(' ');
-        Ok(match split.next().ok_or(())? {
+impl Command {
+    pub fn from_usi(str: &str) -> Option<Self> {
+        let mut words = str.split(' ');
+        Some(match words.next()? {
             "usi" => Self::Usi,
+            "isready" => Self::IsReady,
+            "usinewgame" => Self::UsiNewGame,
+            "position" => {
+                let (position, moves) = parse_position(words)?;
+                Self::Position(position, moves)
+            }
             "quit" => Self::Quit,
             "stop" => Self::Stop,
-            "go" => Self::Go(GoCommand::from_split(split)?),
-            _ => return Err(()),
+            "go" => Self::Go(GoCommand::from_split(words)),
+            "display" => Self::Display,
+            _ => return None,
         })
     }
 }
 
-impl FromStr for GoCommand {
-    type Err = ();
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_split(s.split(' '))
-    }
-}
-
 impl GoCommand {
-    fn from_split<'a>(mut split: impl Iterator<Item = &'a str>) -> Result<Self, ()> {
+    fn from_split<'a>(mut split: impl Iterator<Item = &'a str>) -> Self {
         macro_rules! parse_int {
             () => {{
                 let Some(value) = split.next() else { continue };
@@ -85,6 +83,20 @@ impl GoCommand {
                 _ => {}
             }
         }
-        Ok(builder)
+        builder
     }
+}
+
+fn parse_position<'a>(mut words: impl Iterator<Item = &'a str>) -> Option<(Position, Vec<Action>)> {
+    let position = match words.next()? {
+        "startpos" => Position::StartPos,
+        _ => return None,
+    };
+    let mut moves = vec![];
+    if let Some("moves") = words.next()
+        && let Ok(parsed) = words.map(|word| word.parse()).collect::<Result<Vec<_>, _>>()
+    {
+        moves = parsed;
+    }
+    Some((position, moves))
 }

@@ -9,6 +9,7 @@ pub enum Response {
     ReadyOk,
     BestMove(BestMove),
     Info { depth: u32, time: u32, nodes: u64, score: Score, line: Vec<Action> },
+    // not part of USI, should be printed to stderr instead of stdout
     Error(String),
     Misc(String),
 }

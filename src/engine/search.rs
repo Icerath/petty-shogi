@@ -15,7 +15,7 @@ impl<R: Fn(Response)> Engine<R> {
         if depth == 0 {
             return ControlFlow::Continue(Score::CentiPawns(self.shallow_eval(board)));
         }
-        if self.is_stop() {
+        if self.stop.is_stop() {
             return ControlFlow::Break(());
         }
 
@@ -28,7 +28,7 @@ impl<R: Fn(Response)> Engine<R> {
             let mut board = board.clone();
             board.play(mov);
             let score = self.search(&board, depth - 1, line)?.step();
-            if self.is_stop() {
+            if self.stop.is_stop() {
                 return ControlFlow::Break(());
             }
             if score > best {

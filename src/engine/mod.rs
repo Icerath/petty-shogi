@@ -2,14 +2,11 @@ pub mod command;
 pub mod response;
 mod score;
 mod search;
+mod stop;
 
 use std::{
     ops::ControlFlow,
-    sync::{
-        Arc,
-        atomic::{AtomicBool, Ordering},
-    },
-    thread::JoinHandle,
+    sync::Arc,
     time::{Duration, Instant},
 };
 
@@ -17,6 +14,7 @@ use command::{Command, GoCommand, Position};
 use response::{BestMove, Response};
 use score::Score;
 use search::Search;
+use stop::Stop;
 
 use crate::{Action, Board, Side};
 
@@ -24,9 +22,7 @@ pub struct Engine<R> {
     board: Board,
     search: Search,
     recv: Arc<R>,
-    stop: Arc<AtomicBool>,
-    stop_increment: u32, // how many times have we called stop without checking time_limit?
-    time_limit: Option<(Instant, Duration)>,
+    stop: Stop,
 }
 
 impl<R> Engine<R>
@@ -38,9 +34,7 @@ where
             board: Board::start_pos(),
             search: Search::default(),
             recv: Arc::new(recv),
-            stop: Arc::new(AtomicBool::new(false)),
-            time_limit: None,
-            stop_increment: 0,
+            stop: Stop::default(),
         }
     }
 
@@ -55,16 +49,17 @@ where
                 self.recv(Response::UsiOk);
             }
             Command::IsReady => self.recv(Response::ReadyOk),
-            Command::Go(go) => _ = self.go(go),
+            Command::Go(go) => self.go(go),
             Command::UsiNewGame => {}
             Command::Position(position, moves) => self.position(position, moves),
             Command::Stop => self.stop(),
+            Command::Display => self.recv(Response::Misc(self.board.to_string())),
             command => todo!("{command:?}"),
         }
     }
 
     pub fn stop(&self) {
-        self.stop.store(true, Ordering::Relaxed);
+        self.stop.set_stop();
     }
 
     pub fn position(&mut self, position: Position, moves: Vec<Action>) {
@@ -78,27 +73,40 @@ where
         for mov in moves {
             if self.board.has_legal_move(mov) {
                 self.board.play(mov);
+            } else {
+                self.recv(Response::Error(format!("cannot play {mov}")));
+                break;
             }
         }
     }
 
-    pub fn go(&self, go: GoCommand) -> JoinHandle<()>
+    fn go(&self, go: GoCommand)
     where
         R: Send + Sync + 'static,
     {
-        let mut engine = self.clone();
-        std::thread::spawn(move || {
-            engine.go_blocking(go);
-            engine.stop.store(false, Ordering::Relaxed);
-        })
+        if Arc::strong_count(&self.recv) > 1 {
+            self.recv(Response::Error(
+                "you must stop the previous go command before calling go again".into(),
+            ));
+            return;
+        }
+        let mut engine = Engine {
+            board: self.board.clone(),
+            search: self.search.clone(),
+            recv: self.recv.clone(),
+            stop: self.stop.clone(),
+        };
+        std::thread::spawn(move || engine.go_blocking(go));
     }
 
     fn go_blocking(&mut self, go: GoCommand) {
-        let max_depth = go.depth.unwrap_or(u32::MAX);
-
+        self.stop.reset();
         if let Some(time) = go.movetime {
-            self.time_limit = Some((Instant::now(), Duration::from_millis(time as u64)));
+            self.stop.time_limit(Instant::now(), Duration::from_millis(time as u64));
         }
+        self.stop.infinite(go.infinite);
+
+        let max_depth = go.depth.unwrap_or(u32::MAX);
 
         if let Some(perft) = go.perft {
             self.perft(perft);
@@ -131,17 +139,18 @@ where
         }
     }
 
-    pub fn perft(&mut self, depth: u32) {
+    fn perft(&mut self, depth: u32) {
         if depth == 0 {
             self.recv(Response::Misc("Found 0 positions in 0s".to_string()));
             return;
         }
         let start = Instant::now();
         let mut sum = 0;
-        let result = self.clone().board.legal_moves(|mov| {
+        let mut stop = self.stop.clone();
+        let result = self.board.legal_moves(|mov| {
             let mut board = self.board.clone();
             board.play(mov);
-            let positions = board.try_perft(depth - 1, &mut || self.is_stop())?;
+            let positions = board.try_perft(depth - 1, &mut || stop.is_stop())?;
             self.recv(Response::Misc(format!("{mov}: {positions}")));
             sum += positions;
             ControlFlow::Continue(())
@@ -153,30 +162,5 @@ where
 
     fn recv(&self, response: Response) {
         (self.recv)(response)
-    }
-
-    fn is_stop(&mut self) -> bool {
-        self.stop_increment += 1;
-        if self.stop_increment == 1024 {
-            std::hint::cold_path();
-            self.stop_increment = 0;
-            self.stop.load(Ordering::Relaxed)
-                || self.time_limit.is_some_and(|(start, duration)| start.elapsed() > duration)
-        } else {
-            false
-        }
-    }
-}
-
-impl<R> Clone for Engine<R> {
-    fn clone(&self) -> Self {
-        Self {
-            board: self.board.clone(),
-            search: self.search.clone(),
-            recv: self.recv.clone(),
-            stop: self.stop.clone(),
-            time_limit: self.time_limit,
-            stop_increment: self.stop_increment,
-        }
     }
 }
