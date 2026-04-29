@@ -1,4 +1,5 @@
 pub mod command;
+mod piece_value;
 pub mod response;
 mod score;
 mod search;

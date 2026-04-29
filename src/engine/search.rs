@@ -1,4 +1,5 @@
 use super::*;
+use crate::Piece;
 
 #[derive(Default, Clone)]
 pub struct Search {
@@ -58,6 +59,15 @@ impl<R: Fn(Response)> Engine<R> {
     }
 
     fn abs_shallow_eval(&self, board: &Board) -> i32 {
-        board[Side::Sente].count() as i32 - board[Side::Gote].count() as i32
+        let mut sum = 0;
+        for piece in Piece::ALL {
+            let mut mask = board[piece.kind()] & board[piece.side()];
+            if piece.promoted() {
+                mask &= board.pieces.promoted;
+            }
+            sum += mask.count() as i32 * piece_value::board(piece);
+            sum += board.hands[piece.side()][piece.kind()] as i32 * piece_value::hand(piece);
+        }
+        sum
     }
 }
