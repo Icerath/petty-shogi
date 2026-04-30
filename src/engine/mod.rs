@@ -123,7 +123,6 @@ where
             if self.stop.is_stop() {
                 break;
             }
-            line.reverse();
             self.recv(Response::Info {
                 depth,
                 time: start.elapsed().as_millis() as u32,

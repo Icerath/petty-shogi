@@ -4,6 +4,7 @@ use crate::{Bitboard, Piece};
 #[derive(Default, Clone)]
 pub struct Search {
     pub nodes: u64,
+    depth_from_root: u32,
 }
 
 impl<R: Fn(Response)> Engine<R> {
@@ -31,25 +32,25 @@ impl<R: Fn(Response)> Engine<R> {
             return Score(0);
         }
 
-        let outer_line = kind.line().map(std::mem::take);
+        let mask = if kind.captures_only() { board[!board.active] } else { Bitboard::FULL };
+        let pseudolegal_moves = board.pseudolegal_moves_with(mask, vec![]);
+
+        let line_len = kind.line().map(|line| line.len()).unwrap_or(0);
         let mut best_line = vec![];
         let mut max_score = -Score::MAX;
-        let mask = if kind.captures_only() { board[!board.active] } else { Bitboard::FULL };
-        let legal_moves = board.legal_moves_with(mask, vec![]);
-
-        if legal_moves.is_empty() {
-            return if kind.captures_only() { self.shallow_eval(board) } else { -Score::MAX };
-        }
-
-        for mov in legal_moves {
-            if let Some(line) = kind.line() {
-                line.clear();
+        let mut no_moves = true;
+        for mov in pseudolegal_moves {
+            if !board.is_legal(mov) {
+                continue;
             }
-
+            no_moves = false;
             let mut board = board.clone();
             board.play(mov);
 
+            self.search.depth_from_root += 1;
             let score = -self.search(-beta, -alpha, &board, depth - 1, kind).step();
+            self.search.depth_from_root -= 1;
+
             if self.stop.is_stop() {
                 return score;
             }
@@ -57,18 +58,28 @@ impl<R: Fn(Response)> Engine<R> {
             if score > max_score {
                 max_score = score;
                 if let Some(line) = kind.line() {
-                    best_line = std::mem::take(line);
+                    best_line.clear();
                     best_line.push(mov);
+                    best_line.extend(line.iter().copied());
                 }
             }
             alpha = alpha.max(max_score);
+
+            if let Some(line) = kind.line() {
+                line.truncate(line_len);
+            }
+
             if alpha >= beta {
                 break;
             }
         }
-        if let Some(line) = kind.line() {
-            *line = outer_line.unwrap();
-            line.extend(best_line);
+
+        if no_moves {
+            return if kind.captures_only() { self.shallow_eval(board) } else { -Score::MAX };
+        }
+
+        if let Some(parent_line) = kind.line() {
+            parent_line.extend(best_line);
         }
         max_score
     }
