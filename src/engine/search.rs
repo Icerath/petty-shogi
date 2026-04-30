@@ -1,5 +1,5 @@
 use super::*;
-use crate::Piece;
+use crate::{Bitboard, Piece};
 
 #[derive(Default, Clone)]
 pub struct Search {
@@ -7,79 +7,78 @@ pub struct Search {
 }
 
 impl<R: Fn(Response)> Engine<R> {
-    pub fn search(
+    pub fn search_root(&mut self, board: &Board, depth: u32, line: &mut Vec<Action>) -> Score {
+        self.search(-Score::MAX, Score::MAX, board, depth, &mut NormalSearch { line })
+    }
+
+    fn search(
         &mut self,
+        mut alpha: Score,
+        beta: Score,
         board: &Board,
         depth: u32,
-        line: &mut Vec<Action>,
-    ) -> ControlFlow<(), Score> {
+        kind: &mut impl SearchKind,
+    ) -> Score {
         if depth == 0 {
-            return self.quiescence(board, 4);
+            if kind.captures_only() {
+                return self.shallow_eval(board);
+            } else {
+                return self.search(alpha, beta, board, u32::MAX, &mut CapturesOnly);
+            }
         }
+        assert!(alpha <= beta);
         if self.stop.is_stop() {
-            std::hint::cold_path();
-            return ControlFlow::Break(());
+            return Score(0);
         }
 
-        let outer_line = std::mem::take(line);
-        let mut best = Score::CentiPawns(-i32::MAX);
+        let outer_line = kind.line().map(std::mem::take);
         let mut best_line = vec![];
-        board.legal_moves(|mov| {
-            line.clear();
+        let mut max_score = -Score::MAX;
+        let mask = if kind.captures_only() { board[!board.active] } else { Bitboard::FULL };
+        let legal_moves = board.legal_moves_with(mask, vec![]);
+
+        if legal_moves.is_empty() {
+            return if kind.captures_only() { self.shallow_eval(board) } else { -Score::MAX };
+        }
+
+        for mov in legal_moves {
+            if let Some(line) = kind.line() {
+                line.clear();
+            }
 
             let mut board = board.clone();
             board.play(mov);
-            let score = self.search(&board, depth - 1, line)?.step();
-            if score > best {
-                best = score;
-                best_line = std::mem::take(line);
-                best_line.push(mov);
+
+            let score = -self.search(-beta, -alpha, &board, depth - 1, kind).step();
+            if self.stop.is_stop() {
+                return score;
             }
-            ControlFlow::Continue(())
-        })?;
-        if best_line.is_empty() {
-            // no legal moves
-            return ControlFlow::Continue(Score::Mate(-1));
+
+            if score > max_score {
+                max_score = score;
+                if let Some(line) = kind.line() {
+                    best_line = std::mem::take(line);
+                    best_line.push(mov);
+                }
+            }
+            alpha = alpha.max(max_score);
+            if alpha >= beta {
+                break;
+            }
         }
-        *line = outer_line;
-        line.extend(best_line);
-        ControlFlow::Continue(best)
+        if let Some(line) = kind.line() {
+            *line = outer_line.unwrap();
+            line.extend(best_line);
+        }
+        max_score
     }
 
-    pub fn quiescence(&mut self, board: &Board, max_depth: u32) -> ControlFlow<(), Score> {
-        if max_depth == 0 {
-            return ControlFlow::Continue(Score::CentiPawns(self.shallow_eval(board)));
-        }
-        if self.stop.is_stop() {
-            std::hint::cold_path();
-            return ControlFlow::Break(());
-        }
-
-        let mut best = Score::CentiPawns(-i32::MAX);
-        let mut any_legal = false;
-        board.legal_moves_with(board[!board.active], |mov: Action| {
-            let mut board = board.clone();
-            any_legal = true;
-            board.play(mov);
-            let score = self.quiescence(&board, max_depth - 1)?.step();
-            if score > best {
-                best = score;
-            }
-            ControlFlow::Continue(())
-        })?;
-        if !any_legal {
-            // no legal captures
-            return ControlFlow::Continue(Score::CentiPawns(self.shallow_eval(board)));
-        }
-        ControlFlow::Continue(best)
-    }
-
-    fn shallow_eval(&mut self, board: &Board) -> i32 {
+    fn shallow_eval(&mut self, board: &Board) -> Score {
         let absolute_score = self.abs_shallow_eval(board);
-        match board.active {
+        Score(match board.active {
             Side::Sente => absolute_score,
             Side::Gote => -absolute_score,
-        }
+        })
     }
 
     fn abs_shallow_eval(&mut self, board: &Board) -> i32 {
@@ -94,5 +93,36 @@ impl<R: Fn(Response)> Engine<R> {
             sum += board.hands[piece.side()][piece.kind()] as i32 * piece_value::hand(piece);
         }
         sum
+    }
+}
+
+struct NormalSearch<'a> {
+    line: &'a mut Vec<Action>,
+}
+
+struct CapturesOnly;
+
+trait SearchKind {
+    fn line(&mut self) -> Option<&mut Vec<Action>>;
+    fn captures_only(&self) -> bool;
+}
+
+impl SearchKind for NormalSearch<'_> {
+    fn line(&mut self) -> Option<&mut Vec<Action>> {
+        Some(self.line)
+    }
+
+    fn captures_only(&self) -> bool {
+        false
+    }
+}
+
+impl SearchKind for CapturesOnly {
+    fn captures_only(&self) -> bool {
+        true
+    }
+
+    fn line(&mut self) -> Option<&mut Vec<Action>> {
+        None
     }
 }

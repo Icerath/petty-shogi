@@ -119,11 +119,10 @@ where
         let mut complete_line = vec![];
         for depth in 1..max_depth {
             let mut line = vec![];
-            let ControlFlow::Continue(score) =
-                self.search(&self.position.clone(), depth, &mut line)
-            else {
+            let score = self.search_root(&self.position.clone(), depth, &mut line);
+            if self.stop.is_stop() {
                 break;
-            };
+            }
             line.reverse();
             self.recv(Response::Info {
                 depth,

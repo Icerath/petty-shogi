@@ -1,24 +1,27 @@
-use std::{cmp::Ordering, fmt};
+use std::{cmp::Ordering, fmt, ops::Neg};
 
-#[derive(Clone, Copy)]
-pub enum Score {
-    CentiPawns(i32),
-    Mate(i32),
-}
+#[derive(Debug, Clone, Copy)]
+pub struct Score(pub i32);
 
 impl Score {
+    pub const MAX: Self = Self(i32::MAX);
+
     pub fn step(self) -> Self {
-        match self {
-            Self::CentiPawns(score) => Self::CentiPawns(-score),
-            Self::Mate(ply @ 1..) => Self::Mate(ply + 1),
-            Self::Mate(ply @ ..=0) => Self::Mate(ply - 1),
-        }
+        self
+    }
+}
+
+impl Neg for Score {
+    type Output = Self;
+
+    fn neg(self) -> Self::Output {
+        Self(-self.0)
     }
 }
 
 impl PartialEq for Score {
     fn eq(&self, other: &Self) -> bool {
-        self.cmp(other).is_eq()
+        self.0 == other.0
     }
 }
 
@@ -32,22 +35,12 @@ impl PartialOrd for Score {
 
 impl Ord for Score {
     fn cmp(&self, other: &Self) -> Ordering {
-        match (self, other) {
-            (Self::Mate(l), Self::Mate(r)) => r.cmp(l),
-            (Self::CentiPawns(l), Self::CentiPawns(r)) => l.cmp(r),
-            (Self::Mate(1..), Self::CentiPawns(_)) => Ordering::Greater,
-            (Self::Mate(..=0), Self::CentiPawns(_)) => Ordering::Less,
-            (Self::CentiPawns(_), Self::Mate(..=0)) => Ordering::Greater,
-            (Self::CentiPawns(_), Self::Mate(_)) => Ordering::Less,
-        }
+        self.0.cmp(&other.0)
     }
 }
 
 impl fmt::Display for Score {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::CentiPawns(cp) => write!(f, "{cp}"),
-            Self::Mate(plies) => write!(f, "mate {plies}"),
-        }
+        write!(f, "{}", self.0)
     }
 }
