@@ -4,7 +4,6 @@ use crate::{Bitboard, Piece};
 #[derive(Default, Clone)]
 pub struct Search {
     pub nodes: u64,
-    depth_from_root: u32,
 }
 
 impl<R: Fn(Response)> Engine<R> {
@@ -47,9 +46,7 @@ impl<R: Fn(Response)> Engine<R> {
             let mut board = board.clone();
             board.play(mov);
 
-            self.search.depth_from_root += 1;
             let score = -self.search(-beta, -alpha, &board, depth - 1, kind).step();
-            self.search.depth_from_root -= 1;
 
             if self.stop.is_stop() {
                 return score;
