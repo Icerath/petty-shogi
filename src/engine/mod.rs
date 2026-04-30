@@ -20,7 +20,7 @@ use stop::Stop;
 use crate::{Action, Board, Side};
 
 pub struct Engine<R> {
-    board: Board,
+    position: Board,
     search: Search,
     recv: Arc<R>,
     stop: Stop,
@@ -32,7 +32,7 @@ where
 {
     pub fn init(recv: R) -> Self {
         Self {
-            board: Board::start_pos(),
+            position: Board::start_pos(),
             search: Search::default(),
             recv: Arc::new(recv),
             stop: Stop::default(),
@@ -54,7 +54,7 @@ where
             Command::UsiNewGame => {}
             Command::Position(position, moves) => self.position(position, moves),
             Command::Stop => self.stop(),
-            Command::Display => self.recv(Response::Misc(self.board.to_string())),
+            Command::Display => self.recv(Response::Misc(self.position.to_string())),
             command => todo!("{command:?}"),
         }
     }
@@ -66,14 +66,14 @@ where
     pub fn position(&mut self, position: Position, moves: Vec<Action>) {
         match position {
             Position::Sfen(sfen) => match Board::from_sfen(sfen) {
-                Some(board) => self.board = board,
+                Some(board) => self.position = board,
                 None => self.recv(Response::Error("Invalid SFEN".into())),
             },
-            Position::StartPos => self.board = Board::start_pos(),
+            Position::StartPos => self.position = Board::start_pos(),
         }
         for mov in moves {
-            if self.board.has_legal_move(mov) {
-                self.board.play(mov);
+            if self.position.has_legal_move(mov) {
+                self.position.play(mov);
             } else {
                 self.recv(Response::Error(format!("cannot play {mov}")));
                 break;
@@ -92,7 +92,7 @@ where
             return;
         }
         let mut engine = Engine {
-            board: self.board.clone(),
+            position: self.position.clone(),
             search: self.search.clone(),
             recv: self.recv.clone(),
             stop: self.stop.clone(),
@@ -119,7 +119,8 @@ where
         let mut complete_line = vec![];
         for depth in 1..max_depth {
             let mut line = vec![];
-            let ControlFlow::Continue(score) = self.search(&self.board.clone(), depth, &mut line)
+            let ControlFlow::Continue(score) =
+                self.search(&self.position.clone(), depth, &mut line)
             else {
                 break;
             };
@@ -148,8 +149,8 @@ where
         let start = Instant::now();
         let mut sum = 0;
         let mut stop = self.stop.clone();
-        let result = self.board.legal_moves(|mov| {
-            let mut board = self.board.clone();
+        let result = self.position.legal_moves(|mov| {
+            let mut board = self.position.clone();
             board.play(mov);
             let positions = board.try_perft(depth - 1, &mut || stop.is_stop())?;
             self.recv(Response::Misc(format!("{mov}: {positions}")));

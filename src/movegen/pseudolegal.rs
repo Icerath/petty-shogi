@@ -17,12 +17,12 @@ pub static GOLD_LUT: [[Bitboard; Square::LEN]; 2] =
 pub static KING_LUT: [Bitboard; Square::LEN] = compute_king();
 
 impl Board {
-    pub(crate) fn pseudolegal_moves_<R: Receiver>(&self, r: &mut R) -> R::Result {
+    pub(crate) fn pseudolegal_moves_<R: Receiver>(&self, r: &mut R, mask: Bitboard) -> R::Result {
         let checkers = match (self[PieceKind::King] & self[self.active]).bitscan() {
             Some(king_square) => self.gen_attackers(king_square, self.active),
             None => Bitboard::EMPTY,
         };
-        let mask = !self[self.active];
+        let mask = !self[self.active] & mask;
         macro_rules! moves {
             ($($ident:ident),* $(,)?) => {
                 $(ptry!(self.$ident(mask, r)));*
@@ -46,6 +46,10 @@ impl Board {
 
     fn drop_moves<R: Receiver>(&self, mask: Bitboard, r: &mut R) -> R::Result {
         let empty_squares = mask & !self[!self.active];
+
+        if empty_squares.is_empty() {
+            return R::Result::output();
+        }
 
         macro_rules! drop {
             ($piece:expr, $to:expr) => {

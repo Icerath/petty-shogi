@@ -75,12 +75,20 @@ impl Board {
         self.is_square_attacked(king_square, self.active)
     }
 
+    pub fn legal_moves_with<R: Receiver>(&self, mask: Bitboard, r: R) -> R::Output {
+        self.pseudolegal_moves_with(mask, receiver::Legal { board: self, recv: r })
+    }
+
     pub fn legal_moves<R: Receiver>(&self, r: R) -> R::Output {
         self.pseudolegal_moves(receiver::Legal { board: self, recv: r })
     }
 
-    pub fn pseudolegal_moves<R: Receiver>(&self, mut r: R) -> R::Output {
-        let result = match self.pseudolegal_moves_(&mut r).branch() {
+    pub fn pseudolegal_moves<R: Receiver>(&self, r: R) -> R::Output {
+        self.pseudolegal_moves_with(Bitboard::FULL, r)
+    }
+
+    pub fn pseudolegal_moves_with<R: Receiver>(&self, mask: Bitboard, mut r: R) -> R::Output {
+        let result = match self.pseudolegal_moves_(&mut r, mask).branch() {
             ControlFlow::Continue(()) => R::Result::output(),
             ControlFlow::Break(r) => R::Result::from_residual(r),
         };
