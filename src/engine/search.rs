@@ -55,19 +55,17 @@ impl<R: Fn(Response)> Engine<R> {
                 return score;
             }
 
-            if score > max_score {
-                max_score = score;
-                if let Some(line) = kind.line() {
+            if let Some(line) = kind.line() {
+                if score > max_score {
                     best_line.clear();
                     best_line.push(mov);
                     best_line.extend(line.iter().copied());
                 }
-            }
-            alpha = alpha.max(max_score);
-
-            if let Some(line) = kind.line() {
                 line.truncate(line_len);
             }
+
+            max_score = score.max(max_score);
+            alpha = alpha.max(max_score);
 
             if alpha >= beta {
                 break;
