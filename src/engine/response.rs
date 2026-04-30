@@ -37,7 +37,7 @@ impl fmt::Display for Response {
             Self::Info { depth, time, nodes, score, ref line } => {
                 write!(
                     f,
-                    "info depth {depth} time {time} nodes {nodes}{nps} cp {score} pv ",
+                    "info depth {depth} {score} time {time} nodes {nodes}{nps} pv ",
                     nps = display_nps(nodes, time),
                 )?;
                 for mov in line {
