@@ -1,7 +1,7 @@
-use crate::{Piece, PieceKind, Side};
+use crate::{Piece, PieceKind};
 
 pub fn board(piece: Piece) -> i32 {
-    let score = match (piece.kind(), piece.promoted()) {
+    match (piece.kind(), piece.promoted()) {
         (PieceKind::Pawn, false) => 100,
         (PieceKind::Pawn, true) => 600,
         (PieceKind::Lance, false) => 200,
@@ -14,12 +14,11 @@ pub fn board(piece: Piece) -> i32 {
         (PieceKind::Bishop, _) => 700,
         (PieceKind::Rook, _) => 800,
         (PieceKind::King, _) => 0,
-    };
-    if piece.side() == Side::Gote { -score } else { score }
+    }
 }
 
-pub fn hand(piece: Piece) -> i32 {
-    let score = match piece.kind() {
+pub fn hand(piece: PieceKind) -> i32 {
+    match piece {
         PieceKind::Pawn => 120,
         PieceKind::Lance => 320,
         PieceKind::Knight => 420,
@@ -28,6 +27,5 @@ pub fn hand(piece: Piece) -> i32 {
         PieceKind::Bishop => 720,
         PieceKind::Rook => 820,
         PieceKind::King => 0,
-    };
-    if piece.side() == Side::Gote { -score } else { score }
+    }
 }

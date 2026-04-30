@@ -34,6 +34,8 @@ pub enum Piece {
     GotePromotedRook,
     SenteKing,
     GoteKing,
+    _SentePromotedKing,
+    _GotePromotedKing,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
