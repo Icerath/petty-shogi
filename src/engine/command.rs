@@ -1,4 +1,4 @@
-use crate::Action;
+use crate::{Action, Board};
 
 #[derive(Debug)]
 pub enum Command {
@@ -90,6 +90,9 @@ impl GoCommand {
 fn parse_position<'a>(mut words: impl Iterator<Item = &'a str>) -> Option<(Position, Vec<Action>)> {
     let position = match words.next()? {
         "startpos" => Position::StartPos,
+        "sfen" => {
+            Position::Sfen(Board::from_split_sfen(words.by_ref().map(str::as_bytes))?.to_sfen())
+        }
         _ => return None,
     };
     let mut moves = vec![];

@@ -12,11 +12,10 @@ impl Board {
     }
 
     pub fn from_sfen(sfen: impl AsRef<[u8]>) -> Option<Self> {
-        Self::from_sfen_(sfen.as_ref())
+        Self::from_split_sfen(sfen.as_ref().split(|b| *b == b' '))
     }
 
-    pub fn from_sfen_(sfen: &[u8]) -> Option<Self> {
-        let mut fields = sfen.as_ref().split(|&b| b == b' ');
+    pub fn from_split_sfen<'a>(mut fields: impl Iterator<Item = &'a [u8]>) -> Option<Self> {
         let mut board = parse_pieces(fields.next()?)?;
         board.active = match fields.next()? {
             b"b" => Side::Sente,
