@@ -8,7 +8,7 @@ pub enum Response {
     UsiOk,
     ReadyOk,
     BestMove(BestMove),
-    Info { depth: u32, time: u32, nodes: u64, score: Score, line: Vec<Action> },
+    Info { depth: u32, time: u32, nodes: u64, score: Score, line: Vec<Action>, hashfull: u32 },
     // not part of USI, should be printed to stderr instead of stdout
     Error(String),
     // not part of USI, should be printed to stderr instead of stdout
@@ -34,10 +34,10 @@ impl fmt::Display for Response {
             Self::UsiOk => write!(f, "usiok"),
             Self::ReadyOk => write!(f, "readyok"),
             Self::BestMove(best_move) => write!(f, "bestmove {best_move}"),
-            Self::Info { depth, time, nodes, score, ref line } => {
+            Self::Info { depth, time, nodes, score, hashfull, ref line } => {
                 write!(
                     f,
-                    "info depth {depth} {score} time {time} nodes {nodes}{nps} pv ",
+                    "info depth {depth} {score} time {time} nodes {nodes}{nps} hashfull {hashfull} pv ",
                     nps = display_nps(nodes, time.into()),
                 )?;
                 for mov in line {

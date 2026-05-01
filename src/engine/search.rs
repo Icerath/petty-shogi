@@ -1,9 +1,12 @@
 use super::{Engine, Response, Score, piece_value};
-use crate::{Action, Bitboard, Board, Piece, PieceKind, Side};
+use crate::{
+    Action, Bitboard, Board, Piece, PieceKind, Side, engine::transposition_table::Nodetype,
+};
 
 #[derive(Default, Clone)]
 pub struct Search {
     pub nodes: u64,
+    pub depth_from_root: u64,
 }
 
 impl<R: Fn(Response)> Engine<R> {
@@ -29,6 +32,12 @@ impl<R: Fn(Response)> Engine<R> {
         if self.stop.is_stop() {
             return Score(0);
         }
+        if !kind.captures_only()
+            && self.search.depth_from_root > 0
+            && let Some(entry) = self.ttable.get(board.zobrist, alpha, beta, depth)
+        {
+            return entry.score;
+        }
 
         let mask = if kind.captures_only() { board[!board.active] } else { Bitboard::FULL };
         let pseudolegal_moves = board.pseudolegal_moves_with(mask, vec![]);
@@ -45,7 +54,9 @@ impl<R: Fn(Response)> Engine<R> {
             let mut board = board.clone();
             board.play(mov);
 
+            self.search.depth_from_root += 1;
             let score = -self.search(-beta, -alpha, &board, depth - 1, kind).step();
+            self.search.depth_from_root -= 1;
 
             if self.stop.is_stop() {
                 return score;
@@ -70,6 +81,17 @@ impl<R: Fn(Response)> Engine<R> {
 
         if no_moves {
             return if kind.captures_only() { self.shallow_eval(board) } else { -Score::MATE };
+        }
+
+        if !kind.captures_only() {
+            let nodetype = if alpha >= beta {
+                Nodetype::Beta
+            } else if alpha == max_score {
+                Nodetype::Exact
+            } else {
+                Nodetype::Alpha
+            };
+            self.ttable.insert(board.zobrist, depth, max_score, nodetype);
         }
 
         if let Some(parent_line) = kind.line() {

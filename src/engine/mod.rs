@@ -4,6 +4,7 @@ pub mod response;
 mod score;
 mod search;
 mod stop;
+mod transposition_table;
 
 use std::{
     ops::ControlFlow,
@@ -16,6 +17,7 @@ use response::{BestMove, Response};
 use score::Score;
 use search::Search;
 use stop::Stop;
+use transposition_table::TTable;
 
 use crate::{Action, Board};
 
@@ -24,6 +26,7 @@ pub struct Engine<R> {
     search: Search,
     recv: Arc<R>,
     stop: Stop,
+    ttable: transposition_table::TTable,
 }
 
 impl<R> Engine<R>
@@ -36,6 +39,7 @@ where
             search: Search::default(),
             recv: Arc::new(recv),
             stop: Stop::default(),
+            ttable: TTable::from_bytes(8 * 1024 * 1024),
         }
     }
 
@@ -96,6 +100,7 @@ where
             search: self.search.clone(),
             recv: self.recv.clone(),
             stop: self.stop.clone(),
+            ttable: self.ttable.clone(),
         };
         std::thread::spawn(move || engine.go_blocking(&go));
     }
@@ -117,7 +122,7 @@ where
 
         let start = Instant::now();
         let mut complete_line = vec![];
-        for depth in 1..max_depth {
+        for depth in 1..=max_depth {
             let mut line = vec![];
             let score = self.search_root(&self.position.clone(), depth, &mut line);
             if self.stop.is_stop() {
@@ -127,6 +132,7 @@ where
                 depth,
                 time: u32::try_from(start.elapsed().as_millis()).unwrap_or(u32::MAX),
                 nodes: self.search.nodes,
+                hashfull: self.ttable.hashfull(),
                 score,
                 line: line.clone(),
             });
@@ -140,6 +146,7 @@ where
         } else {
             self.recv(Response::BestMove(BestMove::Resign));
         }
+        eprintln!("{}", self.ttable.num_hits);
     }
 
     fn perft(&self, depth: u32) {

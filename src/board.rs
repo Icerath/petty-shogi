@@ -82,11 +82,6 @@ impl Board {
         }
         self.zobrist.xor_board_piece(sq, piece);
     }
-
-    /// used for testing zobrist correctness
-    pub(crate) fn test_eq(&self, rhs: &Self) -> bool {
-        self.pieces == rhs.pieces && self.active == rhs.active && self.hands == rhs.hands
-    }
 }
 
 #[derive(Clone, PartialEq)]
