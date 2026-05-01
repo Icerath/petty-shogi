@@ -16,7 +16,6 @@ impl Board {
         self.legal_moves(|legal| {
             if legal == mov { ControlFlow::Break(()) } else { ControlFlow::Continue(()) }
         })
-        .branch()
         .is_break()
     }
 
