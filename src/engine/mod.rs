@@ -131,6 +131,9 @@ where
                 line: line.clone(),
             });
             complete_line = line;
+            if score.mate().is_some() {
+                break;
+            }
         }
         if let Some(&best_move) = complete_line.first() {
             self.recv(Response::BestMove(BestMove::Move { mov: best_move, ponder: None }))

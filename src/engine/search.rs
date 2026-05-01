@@ -70,7 +70,7 @@ impl<R: Fn(Response)> Engine<R> {
         }
 
         if no_moves {
-            return if kind.captures_only() { self.shallow_eval(board) } else { -Score::MAX };
+            return if kind.captures_only() { self.shallow_eval(board) } else { -Score::MATE };
         }
 
         if let Some(parent_line) = kind.line() {

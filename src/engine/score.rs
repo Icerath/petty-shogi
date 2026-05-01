@@ -4,10 +4,26 @@ use std::{cmp::Ordering, fmt, ops::Neg};
 pub struct Score(pub i32);
 
 impl Score {
+    pub const MATE: Self = Self(i32::MAX - 1);
     pub const MAX: Self = Self(i32::MAX);
 
-    pub fn step(self) -> Self {
+    pub fn step(mut self) -> Self {
+        if self.mate().is_some() {
+            self.0 -= self.0.signum();
+        }
         self
+    }
+
+    pub fn mate(self) -> Option<i32> {
+        if !((Self::MATE.0 - 1000)..=Self::MATE.0).contains(&self.0.abs()) {
+            return None;
+        }
+        let sign = self.0.signum();
+        Some((Self::MATE.0 - self.0.abs()) * sign)
+    }
+
+    pub fn abs(self) -> Self {
+        Self(self.0.abs())
     }
 }
 
@@ -41,6 +57,16 @@ impl Ord for Score {
 
 impl fmt::Display for Score {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "cp {}", self.0)
+        match self.mate() {
+            Some(ply) => write!(f, "mate {ply}"),
+            None => write!(f, "cp {}", self.0),
+        }
     }
+}
+
+#[test]
+fn test_mate_values() {
+    assert_eq!(Score::MATE.mate(), Some(0));
+    assert_eq!(Score::MATE.step().mate(), Some(1));
+    assert_eq!((-Score::MATE).step().mate(), Some(-1));
 }
