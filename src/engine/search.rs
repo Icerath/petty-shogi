@@ -47,9 +47,6 @@ impl Engine {
         let mut max_score = -Score::MAX;
         let mut no_moves = true;
         while let Some(mov) = movelist.next(board, kind.captures_only()) {
-            if !board.is_legal(mov) {
-                continue;
-            }
             no_moves = false;
             let mut board = board.clone();
             board.play(mov);

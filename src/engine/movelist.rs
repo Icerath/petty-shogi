@@ -21,15 +21,14 @@ impl MoveList {
         match self.moves.get(self.index).copied() {
             Some(mov) => {
                 self.index += 1;
-                Some(mov)
+                if board.is_legal(mov) { Some(mov) } else { self.next(board, captures_only) }
             }
             None if captures_only || self.generated_noncaptures => None,
             None => {
                 self.generated_noncaptures = true;
                 self.moves.clear();
                 board.pseudolegal_moves_with(!board[!board.active], &mut self.moves);
-                self.index = 1;
-                self.moves.first().copied()
+                self.next(board, captures_only)
             }
         }
     }
