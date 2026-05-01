@@ -9,6 +9,7 @@ mod piece;
 mod sfen;
 mod side;
 mod square;
+mod zobrist;
 
 use std::ops::ControlFlow;
 

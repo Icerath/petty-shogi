@@ -153,7 +153,7 @@ where
         let result = self.position.legal_moves(|mov| {
             let mut board = self.position.clone();
             board.play(mov);
-            let positions = board.try_perft(depth - 1, &mut || stop.is_stop())?;
+            let positions = board.try_perft(depth - 1, &mut |_| stop.is_stop())?;
             self.recv(Response::Misc(format!("{mov}: {positions}")));
             sum += positions;
             ControlFlow::Continue(())

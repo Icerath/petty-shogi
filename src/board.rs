@@ -3,7 +3,7 @@ use std::{
     ops::{Index, IndexMut},
 };
 
-use crate::{Action, Bitboard, File, Piece, PieceKind, Rank, Side, Square};
+use crate::{Action, Bitboard, File, Piece, PieceKind, Rank, Side, Square, zobrist::Zobrist};
 
 pub type Hand = [u8; PieceKind::LEN];
 
@@ -13,6 +13,7 @@ pub struct Board {
     pub hands: [Hand; 2],
     pub active: Side,
     pub move_counter: u32,
+    pub zobrist: Zobrist,
 }
 
 impl Board {
@@ -21,6 +22,7 @@ impl Board {
         hands: [[0; PieceKind::LEN]; 2],
         active: Side::Sente,
         move_counter: 0,
+        zobrist: Zobrist::EMPTY,
     };
 
     pub fn play(&mut self, action: Action) {
@@ -28,11 +30,13 @@ impl Board {
             Action::Drop { piece, to } => self.drop_move(piece, to),
             Action::Move { from, to, promoted } => self.play_move(from, to, promoted),
         }
+        self.zobrist.xor_side_to_move();
         self.active = !self.active;
         self.move_counter += 1;
     }
 
     fn drop_move(&mut self, piece: PieceKind, to: Square) {
+        self.zobrist.xor_hand_piece(self.active, piece, self.hands[self.active][piece]);
         self.hands[self.active][piece] -= 1;
         self.insert_piece(Piece::new(self.active, piece, false), to);
     }
@@ -46,25 +50,28 @@ impl Board {
         debug_assert_eq!(from_piece.side(), self.active);
 
         if let Some(piece) = self.pieces.get(to) {
-            // debug_assert!(piece.kind() != PieceKind::King); // TODO: why is this debug_assert not allowed
+            debug_assert!(piece.kind() != PieceKind::King);
+            self.zobrist.xor_hand_piece(
+                self.active,
+                piece.kind(),
+                self.hands[self.active][piece.kind()],
+            );
             self.hands[self.active][piece.kind()] += 1;
             self.remove_piece(piece, to);
         }
 
         self.remove_piece(from_piece, from);
-        self.insert_piece(from_piece, to);
-        if promoted {
-            debug_assert!(!from_piece.promoted());
-            debug_assert!(from_piece.kind() != PieceKind::Gold);
-            debug_assert!(from.is_promotion_zone(self.active) || to.is_promotion_zone(self.active));
-            self.pieces.promoted.insert(to);
-        }
+        self.insert_piece(
+            Piece::new(from_piece.side(), from_piece.kind(), from_piece.promoted() | promoted),
+            to,
+        );
     }
 
     fn remove_piece(&mut self, piece: Piece, sq: Square) {
         self[piece.side()].remove(sq);
         self[piece.kind()].remove(sq);
         self.pieces.promoted.remove(sq);
+        self.zobrist.xor_board_piece(sq, piece);
     }
 
     pub fn insert_piece(&mut self, piece: Piece, sq: Square) {
@@ -73,10 +80,16 @@ impl Board {
         if piece.promoted() {
             self.pieces.promoted.insert(sq);
         }
+        self.zobrist.xor_board_piece(sq, piece);
+    }
+
+    /// used for testing zobrist correctness
+    pub(crate) fn test_eq(&self, rhs: &Self) -> bool {
+        self.pieces == rhs.pieces && self.active == rhs.active && self.hands == rhs.hands
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 #[expect(clippy::struct_field_names)]
 pub struct Pieces {
     pub sides: [Bitboard; 2],

@@ -6,11 +6,15 @@ impl Board {
     #[expect(clippy::missing_panics_doc)]
     #[must_use]
     pub fn perft(&self, depth: u32) -> u64 {
-        self.try_perft(depth, &mut || false).continue_value().unwrap()
+        self.try_perft(depth, &mut |_| false).continue_value().unwrap()
     }
 
-    pub fn try_perft(&self, depth: u32, stop: &mut impl FnMut() -> bool) -> ControlFlow<(), u64> {
-        if stop() {
+    pub fn try_perft(
+        &self,
+        depth: u32,
+        stop: &mut impl FnMut(&Board) -> bool,
+    ) -> ControlFlow<(), u64> {
+        if stop(self) {
             return ControlFlow::Break(());
         }
         match depth {
