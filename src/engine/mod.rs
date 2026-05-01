@@ -22,32 +22,32 @@ use transposition_table::TTable;
 
 use crate::{Action, Board};
 
-pub struct Engine<R> {
+pub struct Engine {
     position: Board,
     search: Search,
-    recv: Arc<R>,
+    recv: Arc<dyn Fn(Response) + 'static + Send + Sync>,
     stop: Stop,
     ttable: transposition_table::TTable,
 }
 
-impl<R> Engine<R>
-where
-    R: Fn(Response),
-{
-    pub fn init(recv: R) -> Self {
+impl Default for Engine {
+    fn default() -> Self {
         Self {
             position: Board::start_pos(),
             search: Search::default(),
-            recv: Arc::new(recv),
+            recv: Arc::new(|_| {}),
             stop: Stop::default(),
             ttable: TTable::from_bytes(8 * 1024 * 1024),
         }
     }
+}
 
-    pub fn process_command(&mut self, command: Command)
-    where
-        R: Send + Sync + 'static,
-    {
+impl Engine {
+    pub fn set_recv(&mut self, recv: impl Fn(Response) + 'static + Send + Sync) {
+        self.recv = Arc::new(recv);
+    }
+
+    pub fn process_command(&mut self, command: Command) {
         match command {
             Command::Usi => {
                 self.recv(Response::Id(response::Id::Name("PettyShogi".into())));
@@ -86,10 +86,7 @@ where
         }
     }
 
-    fn go(&self, go: GoCommand)
-    where
-        R: Send + Sync + 'static,
-    {
+    fn go(&self, go: GoCommand) {
         if Arc::strong_count(&self.recv) > 1 {
             self.recv(Response::Error(
                 "you must stop the previous go command before calling go again".into(),

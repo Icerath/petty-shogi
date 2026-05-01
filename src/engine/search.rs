@@ -1,4 +1,4 @@
-use super::{Engine, Response, Score, piece_value};
+use super::{Engine, Score, piece_value};
 use crate::{
     Action, Board, Piece, PieceKind, Side,
     engine::{movelist::MoveList, transposition_table::Nodetype},
@@ -10,7 +10,7 @@ pub struct Search {
     pub depth_from_root: u64,
 }
 
-impl<R: Fn(Response)> Engine<R> {
+impl Engine {
     pub fn search_root(&mut self, board: &Board, depth: u32, line: &mut Vec<Action>) -> Score {
         self.search(-Score::MAX, Score::MAX, board, depth, &mut NormalSearch { line })
     }

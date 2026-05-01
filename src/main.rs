@@ -1,7 +1,8 @@
 use petty_shogi::{Engine, command::Command, response::Response};
 
 fn main() {
-    let mut engine = Engine::init(|response| match response {
+    let mut engine = Engine::default();
+    engine.set_recv(|response| match response {
         Response::Error(error) => eprintln!("[ERROR] {error}"),
         Response::Misc(message) => eprintln!("{message}"),
         _ => println!("{response}"),
