@@ -1,6 +1,7 @@
 use super::{Engine, Response, Score, piece_value};
 use crate::{
-    Action, Bitboard, Board, Piece, PieceKind, Side, engine::transposition_table::Nodetype,
+    Action, Board, Piece, PieceKind, Side,
+    engine::{movelist::MoveList, transposition_table::Nodetype},
 };
 
 #[derive(Default, Clone)]
@@ -14,13 +15,13 @@ impl<R: Fn(Response)> Engine<R> {
         self.search(-Score::MAX, Score::MAX, board, depth, &mut NormalSearch { line })
     }
 
-    fn search(
+    fn search<K: SearchKind>(
         &mut self,
         mut alpha: Score,
         beta: Score,
         board: &Board,
         depth: u32,
-        kind: &mut impl SearchKind,
+        kind: &mut K,
     ) -> Score {
         if depth == 0 {
             if kind.captures_only() {
@@ -39,14 +40,13 @@ impl<R: Fn(Response)> Engine<R> {
             return entry.score;
         }
 
-        let mask = if kind.captures_only() { board[!board.active] } else { Bitboard::FULL };
-        let pseudolegal_moves = board.pseudolegal_moves_with(mask, vec![]);
+        let mut movelist = MoveList::new(board);
 
         let line_len = kind.line().map_or(0, |line| line.len());
         let mut best_line = vec![];
         let mut max_score = -Score::MAX;
         let mut no_moves = true;
-        for mov in pseudolegal_moves {
+        while let Some(mov) = movelist.next(board, kind.captures_only()) {
             if !board.is_legal(mov) {
                 continue;
             }
