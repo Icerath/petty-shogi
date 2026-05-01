@@ -9,7 +9,10 @@ mod transposition_table;
 
 use std::{
     ops::ControlFlow,
-    sync::Arc,
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
     time::{Duration, Instant},
 };
 
@@ -25,7 +28,8 @@ use crate::{Action, Board};
 pub struct Engine {
     position: Board,
     search: Search,
-    recv: Arc<dyn Fn(Response) + 'static + Send + Sync>,
+    recv: Option<Arc<dyn Fn(Response) + 'static + Send + Sync>>,
+    running: Arc<AtomicBool>,
     stop: Stop,
     ttable: transposition_table::TTable,
 }
@@ -35,7 +39,8 @@ impl Default for Engine {
         Self {
             position: Board::start_pos(),
             search: Search::default(),
-            recv: Arc::new(|_| {}),
+            recv: None,
+            running: Arc::new(AtomicBool::new(false)),
             stop: Stop::default(),
             ttable: TTable::from_bytes(8 * 1024 * 1024),
         }
@@ -44,7 +49,7 @@ impl Default for Engine {
 
 impl Engine {
     pub fn set_recv(&mut self, recv: impl Fn(Response) + 'static + Send + Sync) {
-        self.recv = Arc::new(recv);
+        self.recv = Some(Arc::new(recv));
     }
 
     pub fn process_command(&mut self, command: Command) {
@@ -87,7 +92,7 @@ impl Engine {
     }
 
     fn go(&self, go: GoCommand) {
-        if Arc::strong_count(&self.recv) > 1 {
+        if self.running.load(Ordering::SeqCst) {
             self.recv(Response::Error(
                 "you must stop the previous go command before calling go again".into(),
             ));
@@ -99,11 +104,13 @@ impl Engine {
             recv: self.recv.clone(),
             stop: self.stop.clone(),
             ttable: self.ttable.clone(),
+            running: self.running.clone(),
         };
         std::thread::spawn(move || engine.go_blocking(&go));
     }
 
     fn go_blocking(&mut self, go: &GoCommand) {
+        self.running.store(true, Ordering::SeqCst);
         self.stop.reset();
         if let Some(time) = go.movetime {
             self.stop.time_limit(Instant::now(), Duration::from_millis(time.into()));
@@ -145,6 +152,7 @@ impl Engine {
         } else {
             self.recv(Response::BestMove(BestMove::Resign));
         }
+        self.running.store(false, Ordering::SeqCst);
     }
 
     fn perft(&self, depth: u32) {
@@ -169,6 +177,8 @@ impl Engine {
     }
 
     fn recv(&self, response: Response) {
-        (self.recv)(response);
+        if let Some(recv) = &self.recv {
+            recv(response);
+        }
     }
 }
