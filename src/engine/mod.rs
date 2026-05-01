@@ -13,7 +13,7 @@ use std::{
 };
 
 use command::{Command, GoCommand, Position};
-use response::{BestMove, Response};
+use response::{BestMove, Info, Response};
 use score::Score;
 use search::Search;
 use stop::Stop;
@@ -128,14 +128,15 @@ where
             if self.stop.is_stop() {
                 break;
             }
-            self.recv(Response::Info {
-                depth,
-                time: u32::try_from(start.elapsed().as_millis()).unwrap_or(u32::MAX),
-                nodes: self.search.nodes,
-                hashfull: self.ttable.hashfull(),
-                score,
-                line: line.clone(),
-            });
+            self.recv(Response::Info(
+                Info::default()
+                    .depth(depth)
+                    .time(u32::try_from(start.elapsed().as_millis()).unwrap_or(u32::MAX))
+                    .nodes(self.search.nodes)
+                    .hashfull(self.ttable.hashfull())
+                    .score(score)
+                    .line(line.clone()),
+            ));
             complete_line = line;
             if score.mate().is_some() {
                 break;
@@ -146,7 +147,6 @@ where
         } else {
             self.recv(Response::BestMove(BestMove::Resign));
         }
-        eprintln!("{}", self.ttable.num_hits);
     }
 
     fn perft(&self, depth: u32) {

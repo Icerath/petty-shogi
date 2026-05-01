@@ -8,7 +8,7 @@ pub enum Response {
     UsiOk,
     ReadyOk,
     BestMove(BestMove),
-    Info { depth: u32, time: u32, nodes: u64, score: Score, line: Vec<Action>, hashfull: u32 },
+    Info(Info),
     // not part of USI, should be printed to stderr instead of stdout
     Error(String),
     // not part of USI, should be printed to stderr instead of stdout
@@ -18,6 +18,30 @@ pub enum Response {
 pub enum Id {
     Name(String),
     Author(String),
+}
+
+macro_rules! define_info {
+    ($($field:ident: $ty:ty,)* $(,)?) => {
+        #[derive(Default)]
+        pub struct Info {
+            $($field: Option<$ty>),*
+        }
+        impl Info {
+            $(#[must_use] pub fn $field(mut self, $field: $ty) -> Self {
+                self.$field = Some($field);
+                self
+            })*
+        }
+    };
+}
+
+define_info! {
+    depth: u32,
+    time: u32,
+    nodes: u64,
+    score: Score,
+    line: Vec<Action>,
+    hashfull: u32,
 }
 
 #[derive(Clone, Copy)]
@@ -34,17 +58,7 @@ impl fmt::Display for Response {
             Self::UsiOk => write!(f, "usiok"),
             Self::ReadyOk => write!(f, "readyok"),
             Self::BestMove(best_move) => write!(f, "bestmove {best_move}"),
-            Self::Info { depth, time, nodes, score, hashfull, ref line } => {
-                write!(
-                    f,
-                    "info depth {depth} {score} time {time} nodes {nodes}{nps} hashfull {hashfull} pv ",
-                    nps = display_nps(nodes, time.into()),
-                )?;
-                for mov in line {
-                    write!(f, "{mov} ")?;
-                }
-                Ok(())
-            }
+            Self::Info(ref info) => write!(f, "info {info}"),
             Self::Misc(ref string) => write!(f, "{string}"),
             Self::Error(..) => Ok(()), // can I display errors?
         }
@@ -76,11 +90,29 @@ impl fmt::Display for BestMove {
     }
 }
 
-#[expect(clippy::manual_checked_ops)]
-fn display_nps(nodes: u64, millis: u64) -> impl fmt::Display {
-    fmt::from_fn(
-        move |f| {
-            if millis == 0 { Ok(()) } else { write!(f, " nps {}", (nodes * 1000) / millis) }
-        },
-    )
+impl fmt::Display for Info {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let Self { depth, time, nodes, score, ref line, hashfull } = *self;
+        let nps = time
+            .filter(|time| *time != 0)
+            .and_then(|time| nodes.map(|nodes| nodes * 1000 / u64::from(time)));
+
+        macro_rules! display {
+            ($($ident:ident),* $(,)?) => {
+                $(if let Some(t) = $ident {
+                    write!(f, "{} {t} ", stringify!($ident))?;
+                })*
+            };
+        }
+
+        display!(depth, score, time, nodes, nps, hashfull);
+
+        if let Some(line) = line {
+            write!(f, "pv ")?;
+            for mov in line {
+                write!(f, "{mov} ")?;
+            }
+        }
+        Ok(())
+    }
 }
