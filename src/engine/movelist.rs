@@ -1,6 +1,7 @@
-use crate::{Board, Move};
+use crate::{Bitboard, Board, Move};
 
 pub struct MoveList {
+    promotions: Vec<Move>,
     moves: Vec<Move>,
     index: usize,
     generated_noncaptures: bool,
@@ -8,11 +9,10 @@ pub struct MoveList {
 
 impl MoveList {
     pub fn new(board: &Board) -> Self {
-        Self {
-            moves: board.pseudolegal_moves_with(board[!board.active], vec![]),
-            index: 0,
-            generated_noncaptures: false,
-        }
+        let mut movelist =
+            Self { promotions: vec![], moves: vec![], index: 0, generated_noncaptures: false };
+        movelist.generate_moves(board[board.active], board);
+        movelist
     }
 }
 
@@ -27,9 +27,21 @@ impl MoveList {
             None => {
                 self.generated_noncaptures = true;
                 self.moves.clear();
-                board.pseudolegal_moves_with(!board[!board.active], &mut self.moves);
+                self.generate_moves(!board[!board.active], board);
                 self.next(board, captures_only)
             }
         }
+    }
+
+    fn generate_moves(&mut self, mask: Bitboard, board: &Board) {
+        board.pseudolegal_moves_with(mask, |mov| {
+            if let Move::Board { promoted: true, .. } = mov {
+                self.promotions.push(mov);
+            } else {
+                self.moves.push(mov);
+            }
+        });
+        self.promotions.append(&mut self.moves);
+        std::mem::swap(&mut self.moves, &mut self.promotions);
     }
 }
