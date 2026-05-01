@@ -6,6 +6,9 @@ edition = "2024"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/Icerath/petty-shogi"
 
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+
 [dependencies]
 atoi = "2.0.0"
 konst = "0.4.3"

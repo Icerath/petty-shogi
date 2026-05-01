@@ -16,6 +16,7 @@ macro_rules! impl_index {
             }
         }
         impl $ty {
+            #[expect(clippy::cast_possible_truncation)]
             pub const ALL: [Self; Self::LEN] = {
                 konst::array::from_fn!(|i| unsafe { Self::from_int_unchecked(i as u8) })
             };

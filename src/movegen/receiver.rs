@@ -33,7 +33,7 @@ impl Receiver for Vec<Action> {
         self.push(action);
     }
 
-    fn finish(self, _: Self::Result) -> Self::Output {
+    fn finish(self, (): ()) -> Self::Output {
         self
     }
 }
@@ -43,10 +43,10 @@ impl Receiver for &mut Vec<Action> {
     type Result = ();
 
     fn recv(&mut self, action: Action) {
-        (*self).recv(action)
+        (*self).recv(action);
     }
 
-    fn finish(self, _: Self::Result) {}
+    fn finish(self, (): ()) {}
 }
 
 impl Receiver for u64 {
@@ -57,7 +57,7 @@ impl Receiver for u64 {
         *self += 1;
     }
 
-    fn finish(self, _: Self::Result) -> Self::Output {
+    fn finish(self, (): ()) -> Self::Output {
         self
     }
 }

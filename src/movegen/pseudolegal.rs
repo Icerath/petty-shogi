@@ -249,15 +249,14 @@ fn bishop_rook_finish<const PROMOTED: bool, R: Receiver>(
     }
     bb &= mask;
     ptry!(bb.for_each(|to| r.recv(Action::Move { from: sq, to, promoted: false })));
-    if !PROMOTED {
-        if sq.is_promotion_zone(board.active) {
-            bb.for_each(|to| r.recv(Action::Move { from: sq, to, promoted: true }))
-        } else {
-            (bb & board.active.promotion_zone())
-                .for_each(|to| r.recv(Action::Move { from: sq, to, promoted: true }))
-        }
+    if PROMOTED {
+        return R::Result::output();
+    }
+    if sq.is_promotion_zone(board.active) {
+        bb.for_each(|to| r.recv(Action::Move { from: sq, to, promoted: true }))
     } else {
-        R::Result::output()
+        (bb & board.active.promotion_zone())
+            .for_each(|to| r.recv(Action::Move { from: sq, to, promoted: true }))
     }
 }
 

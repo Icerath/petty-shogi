@@ -17,7 +17,7 @@ use score::Score;
 use search::Search;
 use stop::Stop;
 
-use crate::{Action, Board, Side};
+use crate::{Action, Board};
 
 pub struct Engine<R> {
     position: Board,
@@ -97,13 +97,13 @@ where
             recv: self.recv.clone(),
             stop: self.stop.clone(),
         };
-        std::thread::spawn(move || engine.go_blocking(go));
+        std::thread::spawn(move || engine.go_blocking(&go));
     }
 
-    fn go_blocking(&mut self, go: GoCommand) {
+    fn go_blocking(&mut self, go: &GoCommand) {
         self.stop.reset();
         if let Some(time) = go.movetime {
-            self.stop.time_limit(Instant::now(), Duration::from_millis(time as u64));
+            self.stop.time_limit(Instant::now(), Duration::from_millis(time.into()));
         }
         self.stop.infinite(go.infinite);
 
@@ -125,7 +125,7 @@ where
             }
             self.recv(Response::Info {
                 depth,
-                time: start.elapsed().as_millis() as u32,
+                time: u32::try_from(start.elapsed().as_millis()).unwrap_or(u32::MAX),
                 nodes: self.search.nodes,
                 score,
                 line: line.clone(),
@@ -136,9 +136,9 @@ where
             }
         }
         if let Some(&best_move) = complete_line.first() {
-            self.recv(Response::BestMove(BestMove::Move { mov: best_move, ponder: None }))
+            self.recv(Response::BestMove(BestMove::Move { mov: best_move, ponder: None }));
         } else {
-            self.recv(Response::BestMove(BestMove::Resign))
+            self.recv(Response::BestMove(BestMove::Resign));
         }
     }
 
@@ -164,6 +164,6 @@ where
     }
 
     fn recv(&self, response: Response) {
-        (self.recv)(response)
+        (self.recv)(response);
     }
 }

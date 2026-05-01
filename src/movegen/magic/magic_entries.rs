@@ -7,13 +7,15 @@ struct Entry {
 }
 
 impl Entry {
+    #[expect(clippy::cast_possible_truncation)]
     fn index(&self, blockers: Bitboard) -> usize {
         let blockers = blockers & self.mask;
         let hash = ((blockers.0 >> 63 | blockers.0) as u64).wrapping_mul(self.magic);
-        ((hash >> self.shift) + self.offset as u64) as usize
+        ((hash >> self.shift) + u64::from(self.offset)) as usize
     }
 }
 
+#[expect(clippy::unreadable_literal)]
 #[rustfmt::skip]
 static BISHOP_ENTRIES: [Entry; Square::LEN] = [
     Entry { mask: Bitboard(0x401004010040100400), magic: 0x2004120010801204, shift: 0x39, offset: 0x0 },
@@ -99,6 +101,7 @@ static BISHOP_ENTRIES: [Entry; Square::LEN] = [
     Entry { mask: Bitboard(0x401004010040100400), magic: 0x2004120010801204, shift: 0x39, offset: 0x4e80 },
 ];
 
+#[expect(clippy::unreadable_literal)]
 #[rustfmt::skip]
 static ROOK_ENTRIES: [Entry; Square::LEN] = [
     Entry { mask: Bitboard(0x80402010080402fe), magic: 0x424000040948c100, shift: 0x32, offset: 0x0 },

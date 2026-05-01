@@ -11,6 +11,7 @@ pub use receiver::Receiver;
 use crate::{Action, Bitboard, Board, PieceKind, Side, Square, Try};
 
 impl Board {
+    #[must_use]
     pub fn has_legal_move(&self, action: Action) -> bool {
         self.legal_moves(|mov| {
             if mov == action { ControlFlow::Break(()) } else { ControlFlow::Continue(()) }
@@ -19,6 +20,8 @@ impl Board {
         .is_break()
     }
 
+    #[expect(clippy::missing_panics_doc)]
+    #[must_use]
     pub fn is_legal(&self, action: Action) -> bool {
         let mut board = self.clone();
         board.play(action);
@@ -45,6 +48,7 @@ impl Board {
     }
 
     #[must_use]
+    #[expect(clippy::inline_always, reason = "it improves performance")]
     #[inline(always)]
     pub fn gen_attackers(&self, sq: Square, side: Side) -> Bitboard {
         let occupancy = self.pieces.all();

@@ -45,6 +45,7 @@ pub enum GameOver {
 }
 
 impl Command {
+    #[must_use]
     pub fn from_usi(str: &str) -> Option<Self> {
         let mut words = str.split(' ');
         Some(match words.next()? {
@@ -97,7 +98,7 @@ fn parse_position<'a>(mut words: impl Iterator<Item = &'a str>) -> Option<(Posit
     };
     let mut moves = vec![];
     if let Some("moves") = words.next()
-        && let Ok(parsed) = words.map(|word| word.parse()).collect::<Result<Vec<_>, _>>()
+        && let Ok(parsed) = words.map(str::parse).collect::<Result<Vec<_>, _>>()
     {
         moves = parsed;
     }

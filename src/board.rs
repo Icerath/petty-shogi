@@ -77,6 +77,7 @@ impl Board {
 }
 
 #[derive(Clone)]
+#[expect(clippy::struct_field_names)]
 pub struct Pieces {
     pub sides: [Bitboard; 2],
     pub promoted: Bitboard,
@@ -164,7 +165,7 @@ impl fmt::Display for Board {
                 }
                 out.push_str(" |");
             }
-            _ = writeln!(out, " {}", rank);
+            _ = writeln!(out, " {rank}");
         }
         out.push_str("+---+---+---+---+---+---+---+---+---+\n");
         write!(f, "{out}")

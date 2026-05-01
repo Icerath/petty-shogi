@@ -55,8 +55,9 @@ impl Bitboard {
     }
 
     #[must_use]
-    pub const fn count(self) -> u32 {
-        self.0.count_ones()
+    #[expect(clippy::cast_possible_truncation)]
+    pub const fn count(self) -> u8 {
+        self.0.count_ones() as u8
     }
 
     pub fn for_each<T: Try>(mut self, mut f: impl FnMut(Square) -> T) -> T {
@@ -75,6 +76,7 @@ impl Bitboard {
     /// # Safety
     /// `self.is_empty()` must be false
     #[must_use]
+    #[expect(clippy::cast_possible_truncation)]
     pub const unsafe fn bitscan_unchecked(self) -> Square {
         unsafe { Square::from_int_unchecked(self.0.trailing_zeros() as u8) }
     }
@@ -88,6 +90,7 @@ impl Bitboard {
         self.0 == 0
     }
 
+    #[must_use]
     pub fn contains(self, sq: Square) -> bool {
         !(self & sq.mask()).is_empty()
     }
@@ -111,6 +114,8 @@ impl Bitboard {
         new
     }
 
+    #[expect(clippy::missing_panics_doc)]
+    #[must_use]
     pub const fn from_bits(bits: [bool; Square::LEN]) -> Self {
         let mut bb = Bitboard::EMPTY;
         let mut i = 0;
@@ -123,6 +128,7 @@ impl Bitboard {
         bb
     }
 
+    #[must_use]
     pub const fn shift_forward(self, side: Side) -> Self {
         match side {
             Side::Sente => self.shift_up(),
@@ -130,6 +136,7 @@ impl Bitboard {
         }
     }
 
+    #[must_use]
     pub const fn shift_back(self, side: Side) -> Self {
         match side {
             Side::Sente => self.shift_down(),
@@ -137,15 +144,18 @@ impl Bitboard {
         }
     }
 
+    #[must_use]
     pub const fn shift_up(self) -> Self {
         Self(self.0 >> 9)
     }
 
+    #[must_use]
     pub const fn shift_down(self) -> Self {
         Self((self.0 << 9) & Self::FULL.0)
     }
 
     // FIXME: replace with const traits
+    #[must_use]
     pub const fn bitand(self, rhs: Bitboard) -> Self {
         Self(self.0 & rhs.0)
     }
@@ -165,7 +175,7 @@ impl BitOr for Bitboard {
 
 impl BitOrAssign for Bitboard {
     fn bitor_assign(&mut self, rhs: Self) {
-        *self = *self | rhs
+        *self = *self | rhs;
     }
 }
 
@@ -203,7 +213,7 @@ impl fmt::Debug for Bitboard {
 impl fmt::Display for Bitboard {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for sq in Square::ALL {
-            write!(f, "{} ", self.contains(sq) as u8)?;
+            write!(f, "{} ", u8::from(self.contains(sq)))?;
             if sq.file().right().is_none() {
                 writeln!(f)?;
             }
@@ -212,6 +222,7 @@ impl fmt::Display for Bitboard {
     }
 }
 
+#[must_use]
 pub struct Iter(pub Bitboard);
 
 impl IntoIterator for Bitboard {
@@ -265,12 +276,13 @@ macro_rules! bitboard {
 }
 
 #[cfg(test)]
+#[allow(clippy::pedantic)]
 mod tests {
     use crate::{bitboard::Bitboard, square::Square};
 
     #[test]
     fn full81() {
-        assert_eq!(Bitboard::FULL.count(), Square::LEN as u32);
+        assert_eq!(Bitboard::FULL.count(), Square::LEN as u8);
     }
 
     #[test]

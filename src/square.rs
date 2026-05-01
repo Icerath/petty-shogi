@@ -31,10 +31,12 @@ pub enum Rank {
 impl Square {
     pub const LEN: usize = 81;
 
+    #[must_use]
     pub const fn new(file: File, rank: Rank) -> Self {
         unsafe { Self::from_int_unchecked(file as u8 + rank as u8 * 9) }
     }
 
+    #[must_use]
     pub const fn as_str(self) -> &'static str {
         #[rustfmt::skip]
         static NAMES: [&str; Square::LEN] = [
@@ -51,22 +53,28 @@ impl Square {
         NAMES[self as usize]
     }
 
+    #[must_use]
     pub const fn mask(self) -> Bitboard {
         Bitboard::from_square(self)
     }
 
+    #[must_use]
     pub const fn file(self) -> File {
         unsafe { std::mem::transmute(self as u8 % 9) }
     }
 
+    #[must_use]
     pub const fn rank(self) -> Rank {
         unsafe { std::mem::transmute(self as u8 / 9) }
     }
 
+    #[must_use]
     pub const fn is_promotion_zone(self, side: Side) -> bool {
         self.rank().is_promotion_zone(side)
     }
 
+    #[must_use]
+    #[allow(clippy::enum_glob_use)]
     pub const fn flip(self) -> Self {
         use Square::*;
         #[rustfmt::skip]
@@ -84,21 +92,25 @@ impl Square {
         FLIPPED[self as usize]
     }
 
+    #[must_use]
     pub const fn nforward(self, side: Side, n: u8) -> Option<Self> {
         let Some(rank) = self.rank().nforward(side, n) else { return None };
         Some(Self::new(self.file(), rank))
     }
 
+    #[must_use]
     pub const fn nback(self, side: Side, n: u8) -> Option<Self> {
         let Some(rank) = self.rank().nback(side, n) else { return None };
         Some(Self::new(self.file(), rank))
     }
 
+    #[must_use]
     pub const fn up(self) -> Option<Self> {
         let Some(rank) = self.rank().up() else { return None };
         Some(Self::new(self.file(), rank))
     }
 
+    #[must_use]
     pub const fn forward(self, side: Side) -> Option<Self> {
         if self.rank().forward(side).is_some() {
             Some(unsafe { self.forward_unchecked(side) })
@@ -109,41 +121,50 @@ impl Square {
 
     /// # Safety
     /// `Self::forward(side)` must return Some
+    #[must_use]
     pub const unsafe fn forward_unchecked(self, side: Side) -> Self {
         unsafe { std::mem::transmute((self as i8).unchecked_add(side.forward() * 9)) }
     }
 
+    #[must_use]
     pub const fn back(self, side: Side) -> Option<Self> {
         self.forward(side.flip())
     }
 
     /// # Safety
     /// `Self::back(side)` must return Some
+    #[must_use]
     pub const unsafe fn back_unchecked(self, side: Side) -> Self {
         unsafe { self.forward_unchecked(side.flip()) }
     }
 
+    #[must_use]
     pub const fn down(self) -> Option<Self> {
         let Some(rank) = self.rank().down() else { return None };
         Some(Self::new(self.file(), rank))
     }
 
+    #[must_use]
     pub const fn left(self) -> Option<Self> {
         let Some(file) = self.file().left() else { return None };
         Some(Self::new(file, self.rank()))
     }
 
+    #[must_use]
     pub const fn right(self) -> Option<Self> {
         let Some(file) = self.file().right() else { return None };
         Some(Self::new(file, self.rank()))
     }
 
+    #[must_use]
+    #[expect(clippy::cast_sign_loss)]
     pub const fn offset_file_rank(self, file: i8, rank: i8) -> Option<Self> {
         let file @ 0..9 = (self.file() as i8) + file else { return None };
         let rank @ 0..9 = (self.rank() as i8) + rank else { return None };
         Some(unsafe { Self::from_int_unchecked(file as u8 + rank as u8 * 9) })
     }
 
+    #[must_use]
     pub fn parse(str: [u8; 2]) -> Option<Self> {
         let file = File::try_from_symbol(str[0])?;
         let rank = Rank::try_from_symbol(str[1])?;
@@ -161,20 +182,22 @@ impl fmt::Display for Square {
 impl File {
     pub const LEN: usize = 9;
 
-    #[inline(always)]
+    #[must_use]
     pub const fn left(self) -> Option<Self> {
         if self as u8 == 0 { None } else { unsafe { std::mem::transmute(self as u8 - 1) } }
     }
 
-    #[inline(always)]
+    #[must_use]
     pub const fn right(self) -> Option<Self> {
         if self as u8 == 8 { None } else { unsafe { std::mem::transmute(self as u8 + 1) } }
     }
 
+    #[must_use]
     pub const fn mask(self) -> Bitboard {
         Bitboard::from_file(self)
     }
 
+    #[must_use]
     pub fn try_from_symbol(symbol: u8) -> Option<Self> {
         match symbol {
             b'1'..=b'9' => Some(unsafe { std::mem::transmute(8 - (symbol - b'1')) }),
@@ -188,7 +211,7 @@ impl Rank {
     pub const LEN: usize = 9;
     pub const SYMBOLS: [u8; 9] = [b'a', b'b', b'c', b'd', b'e', b'f', b'g', b'h', b'i'];
 
-    #[inline(always)]
+    #[must_use]
     pub const fn is_promotion_zone(self, side: Side) -> bool {
         match side {
             Side::Sente => (self as u8) < 3,
@@ -196,6 +219,7 @@ impl Rank {
         }
     }
 
+    #[must_use]
     pub const fn nforward(self, side: Side, n: u8) -> Option<Self> {
         match side {
             Side::Sente => self.nup(n),
@@ -203,6 +227,7 @@ impl Rank {
         }
     }
 
+    #[must_use]
     pub const fn nback(self, side: Side, n: u8) -> Option<Self> {
         match side {
             Side::Sente => self.ndown(n),
@@ -210,34 +235,42 @@ impl Rank {
         }
     }
 
+    #[must_use]
     pub const fn nup(self, n: u8) -> Option<Self> {
         if (self as u8) < n { None } else { unsafe { std::mem::transmute(self as u8 - n) } }
     }
 
+    #[must_use]
     pub const fn ndown(self, n: u8) -> Option<Self> {
         if (self as u8) + n >= 9 { None } else { unsafe { std::mem::transmute(self as u8 + n) } }
     }
 
+    #[must_use]
     pub const fn up(self) -> Option<Self> {
         self.nup(1)
     }
 
+    #[must_use]
     pub const fn down(self) -> Option<Self> {
         self.ndown(1)
     }
 
+    #[must_use]
     pub const fn forward(self, side: Side) -> Option<Self> {
         self.nforward(side, 1)
     }
 
+    #[must_use]
     pub const fn back(self, side: Side) -> Option<Self> {
         self.nback(side, 1)
     }
 
+    #[must_use]
     pub const fn mask(self) -> Bitboard {
         Bitboard::from_rank(self)
     }
 
+    #[must_use]
     pub fn try_from_symbol(symbol: u8) -> Option<Self> {
         match symbol {
             b'a'..=b'i' => Some(unsafe { std::mem::transmute(symbol - b'a') }),
@@ -281,6 +314,6 @@ mod tests {
     fn parse() {
         assert_eq!(Rank::try_from_symbol(b'i'), Some(Rank::I));
         assert_eq!(File::try_from_symbol(b'1'), Some(File::_1));
-        assert_eq!(Square::parse([b'7', b'g']), Some(Square::G7))
+        assert_eq!(Square::parse([b'7', b'g']), Some(Square::G7));
     }
 }

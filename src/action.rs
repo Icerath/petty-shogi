@@ -11,7 +11,8 @@ pub enum Action {
 impl Action {
     pub const PLACEHOLDER: Self = Self::Move { from: Square::A1, to: Square::A1, promoted: false };
 
-    pub fn to(self) -> Square {
+    #[must_use]
+    pub const fn to(self) -> Square {
         match self {
             Self::Drop { to, .. } | Self::Move { to, .. } => to,
         }

@@ -38,7 +38,7 @@ impl fmt::Display for Response {
                 write!(
                     f,
                     "info depth {depth} {score} time {time} nodes {nodes}{nps} pv ",
-                    nps = display_nps(nodes, time),
+                    nps = display_nps(nodes, time.into()),
                 )?;
                 for mov in line {
                     write!(f, "{mov} ")?;
@@ -76,8 +76,11 @@ impl fmt::Display for BestMove {
     }
 }
 
-fn display_nps(nodes: u64, millis: u32) -> impl fmt::Display {
-    fmt::from_fn(move |f| {
-        if millis == 0 { Ok(()) } else { write!(f, " nps {}", (nodes * 1000) / millis as u64) }
-    })
+#[expect(clippy::manual_checked_ops)]
+fn display_nps(nodes: u64, millis: u64) -> impl fmt::Display {
+    fmt::from_fn(
+        move |f| {
+            if millis == 0 { Ok(()) } else { write!(f, " nps {}", (nodes * 1000) / millis) }
+        },
+    )
 }

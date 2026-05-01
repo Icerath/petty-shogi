@@ -1,5 +1,5 @@
-use super::*;
-use crate::{Bitboard, Piece, PieceKind};
+use super::{Engine, Response, Score, piece_value};
+use crate::{Action, Bitboard, Board, Piece, PieceKind, Side};
 
 #[derive(Default, Clone)]
 pub struct Search {
@@ -22,9 +22,8 @@ impl<R: Fn(Response)> Engine<R> {
         if depth == 0 {
             if kind.captures_only() {
                 return self.shallow_eval(board);
-            } else {
-                return self.search(alpha, beta, board, u32::MAX, &mut CapturesOnly);
             }
+            return self.search(alpha, beta, board, u32::MAX, &mut CapturesOnly);
         }
         assert!(alpha <= beta);
         if self.stop.is_stop() {
@@ -34,7 +33,7 @@ impl<R: Fn(Response)> Engine<R> {
         let mask = if kind.captures_only() { board[!board.active] } else { Bitboard::FULL };
         let pseudolegal_moves = board.pseudolegal_moves_with(mask, vec![]);
 
-        let line_len = kind.line().map(|line| line.len()).unwrap_or(0);
+        let line_len = kind.line().map_or(0, |line| line.len());
         let mut best_line = vec![];
         let mut max_score = -Score::MAX;
         let mut no_moves = true;
@@ -98,9 +97,9 @@ impl<R: Fn(Response)> Engine<R> {
                     if promoted {
                         mask &= board.pieces.promoted;
                     }
-                    sum +=
-                        mask.count() as i32 * piece_value::board(Piece::new(side, kind, promoted));
-                    sum += board.hands[side][kind] as i32 * piece_value::hand(kind);
+                    sum += i32::from(mask.count())
+                        * piece_value::board(Piece::new(side, kind, promoted));
+                    sum += i32::from(board.hands[side][kind]) * piece_value::hand(kind);
                 }
             }
             sum_both += if side == Side::Sente { sum } else { -sum };

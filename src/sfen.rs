@@ -1,4 +1,4 @@
-//! format taking from http://hgm.nubati.net/usi.html
+//! format taking from <http://hgm.nubati.net/usi.html>
 
 use std::io::Write as _;
 
@@ -7,6 +7,8 @@ use crate::{Board, File, Hand, Piece, PieceKind, Rank, Side, Square};
 pub const INITIAL_SFEN: &str = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1";
 
 impl Board {
+    #[expect(clippy::missing_panics_doc)]
+    #[must_use]
     pub fn start_pos() -> Self {
         Self::from_sfen(INITIAL_SFEN).expect("the starting fen should be valid")
     }
@@ -27,12 +29,14 @@ impl Board {
         Some(board)
     }
 
+    #[must_use]
     pub fn to_sfen(&self) -> String {
         let mut buf = vec![];
         self.write_fen(&mut buf);
         unsafe { String::from_utf8_unchecked(buf) }
     }
 
+    #[expect(clippy::missing_panics_doc)]
     pub fn write_fen(&self, buf: &mut Vec<u8>) {
         let mut prev = None::<Square>;
         for sq in Square::ALL {

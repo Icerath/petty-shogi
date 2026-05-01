@@ -53,18 +53,24 @@ pub enum PieceKind {
 impl Piece {
     pub const LEN: usize = Self::GoteKing as usize + 1;
 
+    #[must_use]
     pub fn new(side: Side, kind: PieceKind, promoted: bool) -> Self {
-        unsafe { Self::from_int_unchecked(side as u8 | (promoted as u8) << 1 | (kind as u8) << 2) }
+        unsafe {
+            Self::from_int_unchecked(side as u8 | u8::from(promoted) << 1 | (kind as u8) << 2)
+        }
     }
 
+    #[must_use]
     pub fn side(self) -> Side {
         Side::from_bool(self as u8 & 1 == 1)
     }
 
+    #[must_use]
     pub fn promoted(self) -> bool {
         self as u8 & 2 == 2
     }
 
+    #[must_use]
     pub fn kind(self) -> PieceKind {
         unsafe { PieceKind::from_int_unchecked((self as u8) >> 2) }
     }
@@ -72,9 +78,8 @@ impl Piece {
 
 impl PieceKind {
     pub const LEN: usize = Self::King as usize + 1;
-}
 
-impl PieceKind {
+    #[must_use]
     pub fn symbol(self) -> u8 {
         match self {
             Self::Pawn => b'p',

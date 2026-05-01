@@ -42,10 +42,12 @@ impl<'de> serde::Deserialize<'de> for Side {
 impl Side {
     pub const LEN: usize = 2;
 
+    #[must_use]
     pub fn from_bool(gote: bool) -> Self {
         if gote { Self::Gote } else { Self::Sente }
     }
 
+    #[must_use]
     pub const fn forward(self) -> i8 {
         match self {
             Self::Sente => -1,
@@ -53,6 +55,7 @@ impl Side {
         }
     }
 
+    #[must_use]
     pub fn end_rank(self) -> Rank {
         match self {
             Self::Sente => Rank::A,
@@ -60,6 +63,7 @@ impl Side {
         }
     }
 
+    #[must_use]
     pub const fn promotion_zone(self) -> Bitboard {
         match self {
             Self::Sente => SENTE_PROMOTION_ZONE,
@@ -67,6 +71,7 @@ impl Side {
         }
     }
 
+    #[must_use]
     pub const fn flip(self) -> Self {
         match self {
             Self::Sente => Self::Gote,

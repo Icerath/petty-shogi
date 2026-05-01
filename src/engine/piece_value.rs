@@ -1,5 +1,6 @@
 use crate::{Piece, PieceKind};
 
+#[expect(clippy::match_same_arms)]
 pub fn board(piece: Piece) -> i32 {
     match (piece.kind(), piece.promoted()) {
         (PieceKind::Pawn, false) => 100,

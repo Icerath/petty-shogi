@@ -8,16 +8,16 @@ use std::{
 
 #[derive(Default, Clone)]
 pub struct Stop {
-    force_stop: Arc<AtomicBool>,
-    stop_increment: u32,
+    force: Arc<AtomicBool>,
+    increment: u32,
     time_limit: Option<(Instant, Duration)>,
     infinite: bool,
 }
 
 impl Stop {
     pub fn reset(&mut self) {
-        self.force_stop.store(false, Ordering::Relaxed);
-        *self = Self { force_stop: self.force_stop.clone(), ..Self::default() };
+        self.force.store(false, Ordering::Relaxed);
+        *self = Self { force: self.force.clone(), ..Self::default() };
     }
 
     pub fn infinite(&mut self, infinite: bool) -> &mut Self {
@@ -31,12 +31,12 @@ impl Stop {
     }
 
     pub fn set_stop(&self) {
-        self.force_stop.store(true, Ordering::Relaxed);
+        self.force.store(true, Ordering::Relaxed);
     }
 
     pub fn is_stop(&mut self) -> bool {
-        if self.stop_increment < 1024 {
-            self.stop_increment += 1;
+        if self.increment < 1024 {
+            self.increment += 1;
             return false;
         }
         self.get_is_stop()
@@ -46,15 +46,15 @@ impl Stop {
     #[inline(never)]
     fn get_is_stop(&mut self) -> bool {
         if self.infinite {
-            self.stop_increment = 0;
+            self.increment = 0;
             return false;
         }
-        if self.force_stop.load(Ordering::Relaxed)
+        if self.force.load(Ordering::Relaxed)
             || self.time_limit.as_ref().is_some_and(|(start, duration)| start.elapsed() > *duration)
         {
             return true;
         }
-        self.stop_increment = 0;
+        self.increment = 0;
         false
     }
 }
