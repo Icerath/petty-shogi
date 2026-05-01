@@ -168,11 +168,13 @@ impl Board {
             let back = unsafe { sq.back(self.active).unwrap_unchecked() };
             if let Some(left) = back.left()
                 && !self[self.active].contains(left)
+                && mask.contains(left)
             {
                 ptry!(r.recv(Move::Board { from: sq, to: left, promoted: true }));
             }
             if let Some(right) = back.right()
                 && !self[self.active].contains(right)
+                && mask.contains(right)
             {
                 ptry!(r.recv(Move::Board { from: sq, to: right, promoted: true }));
             }
@@ -200,6 +202,11 @@ impl Board {
             (self[PieceKind::Bishop] & self[self.active] & !self.pieces.promoted)
                 .for_each(|sq| bishop::<false, _>(self, mask, sq, r))
         );
+
+        if let Some(true) = R::PROMOTE_FILTER {
+            return R::Result::output();
+        }
+
         (self[PieceKind::Bishop] & self[self.active] & self.pieces.promoted)
             .for_each(|sq| bishop::<true, _>(self, mask, sq, r))
     }
@@ -209,6 +216,11 @@ impl Board {
             (self[PieceKind::Rook] & self[self.active] & !self.pieces.promoted)
                 .for_each(|sq| rook::<false, _>(self, mask, sq, r))
         );
+
+        if let Some(true) = R::PROMOTE_FILTER {
+            return R::Result::output();
+        }
+
         (self[PieceKind::Rook] & self[self.active] & self.pieces.promoted)
             .for_each(|sq| rook::<true, _>(self, mask, sq, r))
     }
@@ -293,22 +305,17 @@ fn bishop_rook_finish<const PROMOTED: bool, R: Receiver>(
     if let Some(false) | None = R::PROMOTE_FILTER {
         ptry!(bb.for_each(|to| r.recv(Move::Board { from: sq, to, promoted: false })));
     }
+    if let Some(false) = R::PROMOTE_FILTER {
+        return R::Result::output();
+    }
     if PROMOTED {
         return R::Result::output();
     }
     if sq.is_promotion_zone(board.active) {
-        if let Some(true) | None = R::PROMOTE_FILTER {
-            bb.for_each(|to| r.recv(Move::Board { from: sq, to, promoted: true }))
-        } else {
-            R::Result::output()
-        }
+        bb.for_each(|to| r.recv(Move::Board { from: sq, to, promoted: true }))
     } else {
-        if let Some(false) | None = R::PROMOTE_FILTER {
-            (bb & board.active.promotion_zone())
-                .for_each(|to| r.recv(Move::Board { from: sq, to, promoted: true }))
-        } else {
-            R::Result::output()
-        }
+        (bb & board.active.promotion_zone())
+            .for_each(|to| r.recv(Move::Board { from: sq, to, promoted: true }))
     }
 }
 
