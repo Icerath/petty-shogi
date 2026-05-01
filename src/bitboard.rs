@@ -106,7 +106,7 @@ impl Bitboard {
     #[must_use]
     /// slow, should not be used in hot path
     pub const fn flip(mut self) -> Self {
-        let mut new = Bitboard::EMPTY;
+        let mut new = Self::EMPTY;
         while let Some(sq) = self.bitscan() {
             new.insert(sq.flip());
             self.bitscan_pop();
@@ -117,7 +117,7 @@ impl Bitboard {
     #[expect(clippy::missing_panics_doc)]
     #[must_use]
     pub const fn from_bits(bits: [bool; Square::LEN]) -> Self {
-        let mut bb = Bitboard::EMPTY;
+        let mut bb = Self::EMPTY;
         let mut i = 0;
         while (i as usize) < Square::LEN {
             if bits[i as usize] {
@@ -156,7 +156,7 @@ impl Bitboard {
 
     // FIXME: replace with const traits
     #[must_use]
-    pub const fn bitand(self, rhs: Bitboard) -> Self {
+    pub const fn bitand(self, rhs: Self) -> Self {
         Self(self.0 & rhs.0)
     }
 

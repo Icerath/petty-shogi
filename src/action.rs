@@ -51,7 +51,7 @@ impl FromStr for Action {
                 _ => return Err(InvalidActionStr),
             };
             let to = Square::parse(s[2..=3].try_into().unwrap()).ok_or(InvalidActionStr)?;
-            Ok(Action::Drop { piece, to })
+            Ok(Self::Drop { piece, to })
         } else {
             let from = Square::parse(s[0..=1].try_into().unwrap()).ok_or(InvalidActionStr)?;
             let to = Square::parse(s[2..=3].try_into().unwrap()).ok_or(InvalidActionStr)?;
@@ -62,7 +62,7 @@ impl FromStr for Action {
                 }
                 promoted = true;
             }
-            Ok(Action::Move { from, to, promoted })
+            Ok(Self::Move { from, to, promoted })
         }
     }
 }

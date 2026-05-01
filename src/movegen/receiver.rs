@@ -26,7 +26,7 @@ where
 }
 
 impl Receiver for Vec<Action> {
-    type Output = Vec<Action>;
+    type Output = Self;
     type Result = ();
 
     fn recv(&mut self, action: Action) {
@@ -50,7 +50,7 @@ impl Receiver for &mut Vec<Action> {
 }
 
 impl Receiver for u64 {
-    type Output = u64;
+    type Output = Self;
     type Result = ();
 
     fn recv(&mut self, _: Action) {

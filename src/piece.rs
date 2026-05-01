@@ -61,17 +61,17 @@ impl Piece {
     }
 
     #[must_use]
-    pub fn side(self) -> Side {
+    pub const fn side(self) -> Side {
         Side::from_bool(self as u8 & 1 == 1)
     }
 
     #[must_use]
-    pub fn promoted(self) -> bool {
+    pub const fn promoted(self) -> bool {
         self as u8 & 2 == 2
     }
 
     #[must_use]
-    pub fn kind(self) -> PieceKind {
+    pub const fn kind(self) -> PieceKind {
         unsafe { PieceKind::from_int_unchecked((self as u8) >> 2) }
     }
 }
@@ -80,7 +80,7 @@ impl PieceKind {
     pub const LEN: usize = Self::King as usize + 1;
 
     #[must_use]
-    pub fn symbol(self) -> u8 {
+    pub const fn symbol(self) -> u8 {
         match self {
             Self::Pawn => b'p',
             Self::Lance => b'l',

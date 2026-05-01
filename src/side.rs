@@ -43,7 +43,7 @@ impl Side {
     pub const LEN: usize = 2;
 
     #[must_use]
-    pub fn from_bool(gote: bool) -> Self {
+    pub const fn from_bool(gote: bool) -> Self {
         if gote { Self::Gote } else { Self::Sente }
     }
 
@@ -56,7 +56,7 @@ impl Side {
     }
 
     #[must_use]
-    pub fn end_rank(self) -> Rank {
+    pub const fn end_rank(self) -> Rank {
         match self {
             Self::Sente => Rank::A,
             Self::Gote => Rank::I,

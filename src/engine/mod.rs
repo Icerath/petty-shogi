@@ -91,7 +91,7 @@ where
             ));
             return;
         }
-        let mut engine = Engine {
+        let mut engine = Self {
             position: self.position.clone(),
             search: self.search.clone(),
             recv: self.recv.clone(),
@@ -142,7 +142,7 @@ where
         }
     }
 
-    fn perft(&mut self, depth: u32) {
+    fn perft(&self, depth: u32) {
         if depth == 0 {
             self.recv(Response::Misc("Found 0 positions in 0s".to_string()));
             return;
