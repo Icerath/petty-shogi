@@ -25,6 +25,7 @@ impl MoveList {
             None => {
                 self.generated_noncaptures = true;
                 self.moves.clear();
+                self.index = 0;
                 self.generate_moves(!board[!board.active], board);
                 self.next(board, captures_only)
             }
