@@ -31,14 +31,14 @@ impl Board {
 
         if checkers.count() < 2 {
             moves!(
-                drop_moves,
                 pawn_moves,
                 lance_moves,
                 knight_moves,
                 silver_moves,
                 gold_moves,
                 bishop_moves,
-                rook_moves
+                rook_moves,
+                drop_moves,
             );
         }
         self.king_moves(mask, r)
