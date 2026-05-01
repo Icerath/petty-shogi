@@ -9,7 +9,7 @@ pub struct MoveList {
 impl MoveList {
     pub fn new(board: &Board) -> Self {
         let mut movelist = Self { moves: vec![], index: 0, generated_noncaptures: false };
-        movelist.generate_moves(board[board.active], board);
+        movelist.generate_moves(board[!board.active], board);
         movelist
     }
 }
