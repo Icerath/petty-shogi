@@ -1,7 +1,7 @@
 use std::fmt;
 
 use super::score::Score;
-use crate::Action;
+use crate::Move;
 
 pub enum Response {
     Id(Id),
@@ -40,7 +40,7 @@ define_info! {
     time: u32,
     nodes: u64,
     score: Score,
-    line: Vec<Action>,
+    line: Vec<Move>,
     hashfull: u32,
 }
 
@@ -48,7 +48,7 @@ define_info! {
 pub enum BestMove {
     Resign,
     Win,
-    Move { mov: Action, ponder: Option<Action> },
+    Move { mov: Move, ponder: Option<Move> },
 }
 
 impl fmt::Display for Response {

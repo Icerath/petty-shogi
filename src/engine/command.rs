@@ -1,11 +1,11 @@
-use crate::{Action, Board};
+use crate::{Board, Move};
 
 #[derive(Debug)]
 pub enum Command {
     Usi,
     UsiNewGame,
     IsReady,
-    Position(Position, Vec<Action>),
+    Position(Position, Vec<Move>),
     Go(GoCommand),
     Stop,
     PonderHit,
@@ -17,7 +17,7 @@ pub enum Command {
 
 #[derive(Debug, Default)]
 pub struct GoCommand {
-    pub search_moves: Vec<Action>,
+    pub search_moves: Vec<Move>,
     pub ponder: bool,
     pub btime: Option<u64>,
     pub wtime: Option<u64>,
@@ -88,7 +88,7 @@ impl GoCommand {
     }
 }
 
-fn parse_position<'a>(mut words: impl Iterator<Item = &'a str>) -> Option<(Position, Vec<Action>)> {
+fn parse_position<'a>(mut words: impl Iterator<Item = &'a str>) -> Option<(Position, Vec<Move>)> {
     let position = match words.next()? {
         "startpos" => Position::StartPos,
         "sfen" => {

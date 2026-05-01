@@ -1,6 +1,6 @@
 use super::{Engine, Score, piece_value};
 use crate::{
-    Action, Board, Piece, PieceKind, Side,
+    Board, Move, Piece, PieceKind, Side,
     engine::{movelist::MoveList, transposition_table::Nodetype},
 };
 
@@ -11,7 +11,7 @@ pub struct Search {
 }
 
 impl Engine {
-    pub fn search_root(&mut self, board: &Board, depth: u32, line: &mut Vec<Action>) -> Score {
+    pub fn search_root(&mut self, board: &Board, depth: u32, line: &mut Vec<Move>) -> Score {
         self.search(-Score::MAX, Score::MAX, board, depth, &mut NormalSearch { line })
     }
 
@@ -128,18 +128,18 @@ impl Engine {
 }
 
 struct NormalSearch<'a> {
-    line: &'a mut Vec<Action>,
+    line: &'a mut Vec<Move>,
 }
 
 struct CapturesOnly;
 
 trait SearchKind {
-    fn line(&mut self) -> Option<&mut Vec<Action>>;
+    fn line(&mut self) -> Option<&mut Vec<Move>>;
     fn captures_only(&self) -> bool;
 }
 
 impl SearchKind for NormalSearch<'_> {
-    fn line(&mut self) -> Option<&mut Vec<Action>> {
+    fn line(&mut self) -> Option<&mut Vec<Move>> {
         Some(self.line)
     }
 
@@ -153,7 +153,7 @@ impl SearchKind for CapturesOnly {
         true
     }
 
-    fn line(&mut self) -> Option<&mut Vec<Action>> {
+    fn line(&mut self) -> Option<&mut Vec<Move>> {
         None
     }
 }

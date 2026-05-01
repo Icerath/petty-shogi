@@ -3,7 +3,7 @@ use std::{
     ops::{Index, IndexMut},
 };
 
-use crate::{Action, Bitboard, File, Piece, PieceKind, Rank, Side, Square, zobrist::Zobrist};
+use crate::{Bitboard, File, Move, Piece, PieceKind, Rank, Side, Square, zobrist::Zobrist};
 
 pub type Hand = [u8; PieceKind::LEN];
 
@@ -25,10 +25,10 @@ impl Board {
         zobrist: Zobrist::EMPTY,
     };
 
-    pub fn play(&mut self, action: Action) {
-        match action {
-            Action::Drop { piece, to } => self.drop_move(piece, to),
-            Action::Move { from, to, promoted } => self.play_move(from, to, promoted),
+    pub fn play(&mut self, mov: Move) {
+        match mov {
+            Move::Drop { piece, to } => self.drop_move(piece, to),
+            Move::Board { from, to, promoted } => self.play_move(from, to, promoted),
         }
         self.zobrist.xor_side_to_move();
         self.active = !self.active;

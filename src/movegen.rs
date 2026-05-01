@@ -8,13 +8,13 @@ use magic::{bishop_moves, lance_moves, rook_moves};
 use pseudolegal::{GOLD_LUT, KING_LUT, KNIGHT_LUT, SILVER_LUT};
 pub use receiver::Receiver;
 
-use crate::{Action, Bitboard, Board, PieceKind, Side, Square, Try};
+use crate::{Bitboard, Board, Move, PieceKind, Side, Square, Try};
 
 impl Board {
     #[must_use]
-    pub fn has_legal_move(&self, action: Action) -> bool {
-        self.legal_moves(|mov| {
-            if mov == action { ControlFlow::Break(()) } else { ControlFlow::Continue(()) }
+    pub fn has_legal_move(&self, mov: Move) -> bool {
+        self.legal_moves(|legal| {
+            if legal == mov { ControlFlow::Break(()) } else { ControlFlow::Continue(()) }
         })
         .branch()
         .is_break()
@@ -22,16 +22,16 @@ impl Board {
 
     #[expect(clippy::missing_panics_doc)]
     #[must_use]
-    pub fn is_legal(&self, action: Action) -> bool {
+    pub fn is_legal(&self, mov: Move) -> bool {
         let mut board = self.clone();
-        board.play(action);
+        board.play(mov);
 
         // check for pawn drop mate
-        if let Action::Drop { piece, to } = action
+        if let Move::Drop { piece, to } = mov
             && piece == PieceKind::Pawn
             && (self[PieceKind::King] & self[!self.active])
                 .contains(to.forward(self.active).unwrap())
-            && !board.has_legal_move(action)
+            && !board.has_legal_move(mov)
         {
             return false;
         }

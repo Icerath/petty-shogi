@@ -1,7 +1,7 @@
-use crate::{Action, Board};
+use crate::{Board, Move};
 
 pub struct MoveList {
-    moves: Vec<Action>,
+    moves: Vec<Move>,
     index: usize,
     generated_noncaptures: bool,
 }
@@ -17,7 +17,7 @@ impl MoveList {
 }
 
 impl MoveList {
-    pub fn next(&mut self, board: &Board, captures_only: bool) -> Option<Action> {
+    pub fn next(&mut self, board: &Board, captures_only: bool) -> Option<Move> {
         match self.moves.get(self.index).copied() {
             Some(mov) => {
                 self.index += 1;

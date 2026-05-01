@@ -23,7 +23,7 @@ use search::Search;
 use stop::Stop;
 use transposition_table::TTable;
 
-use crate::{Action, Board};
+use crate::{Board, Move};
 
 pub struct Engine {
     position: Board,
@@ -73,7 +73,7 @@ impl Engine {
         self.stop.set_stop();
     }
 
-    pub fn position(&mut self, position: Position, moves: Vec<Action>) {
+    pub fn position(&mut self, position: Position, moves: Vec<Move>) {
         match position {
             Position::Sfen(sfen) => match Board::from_sfen(sfen) {
                 Some(board) => self.position = board,

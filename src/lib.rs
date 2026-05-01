@@ -1,8 +1,8 @@
-mod action;
 mod bitboard;
 mod board;
 mod engine;
 mod index;
+mod r#move;
 mod movegen;
 mod perft;
 mod piece;
@@ -13,10 +13,10 @@ mod zobrist;
 
 use std::ops::ControlFlow;
 
-pub use action::Action;
 pub use bitboard::Bitboard;
 pub use board::{Board, Hand};
 pub use engine::{Engine, command, response};
+pub use r#move::Move;
 pub use piece::{Piece, PieceKind};
 pub use side::Side;
 pub use square::{File, Rank, Square};
