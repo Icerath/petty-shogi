@@ -4,6 +4,8 @@ pub trait Receiver {
     type Result: Try;
     type Output;
 
+    const PROMOTE_FILTER: Option<bool> = None;
+
     fn recv(&mut self, mov: Move) -> Self::Result;
     fn finish(self, result: Self::Result) -> Self::Output;
 }
@@ -71,11 +73,30 @@ impl<R: Receiver> Receiver for Legal<'_, R> {
     type Output = R::Output;
     type Result = R::Result;
 
+    const PROMOTE_FILTER: Option<bool> = R::PROMOTE_FILTER;
+
     fn recv(&mut self, mov: Move) -> Self::Result {
         if self.board.is_legal(mov) { self.recv.recv(mov) } else { Self::Result::output() }
     }
 
     fn finish(self, result: Self::Result) -> Self::Output {
         self.recv.finish(result)
+    }
+}
+
+pub struct FilterPromote<const FILTER: bool, R>(pub R);
+
+impl<const FILTER: bool, R: Receiver> Receiver for FilterPromote<FILTER, R> {
+    type Output = R::Output;
+    type Result = R::Result;
+
+    const PROMOTE_FILTER: Option<bool> = Some(FILTER);
+
+    fn recv(&mut self, mov: Move) -> Self::Result {
+        self.0.recv(mov)
+    }
+
+    fn finish(self, result: Self::Result) -> Self::Output {
+        self.0.finish(result)
     }
 }

@@ -6,7 +6,7 @@ use std::ops::ControlFlow;
 
 use magic::{bishop_moves, lance_moves, rook_moves};
 use pseudolegal::{GOLD_LUT, KING_LUT, KNIGHT_LUT, SILVER_LUT};
-pub use receiver::Receiver;
+pub use receiver::{FilterPromote, Receiver};
 
 use crate::{Bitboard, Board, Move, PieceKind, Side, Square, Try};
 
