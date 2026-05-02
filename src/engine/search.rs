@@ -83,7 +83,7 @@ impl Engine {
                 if score > max_score {
                     best_line.clear();
                     best_line.push(mov);
-                    best_line.extend(line.iter().copied());
+                    best_line.extend(line[line_len..].iter().copied());
                 }
                 line.truncate(line_len);
             }
