@@ -51,8 +51,13 @@ impl Engine {
             let mut board = board.clone();
             board.play(mov);
 
+            let mut extension = 0;
+            if board.is_check() {
+                extension += 1;
+            }
+
             self.search.depth_from_root += 1;
-            let score = -self.search(-beta, -alpha, &board, depth - 1, kind).step();
+            let score = -self.search(-beta, -alpha, &board, depth - 1 + extension, kind).step();
             self.search.depth_from_root -= 1;
 
             if self.stop.is_stop() {
