@@ -25,13 +25,17 @@ impl Board {
         zobrist: Zobrist::EMPTY,
     };
 
+    pub fn switch_side(&mut self) {
+        self.active = !self.active;
+        self.zobrist.xor_side_to_move();
+    }
+
     pub fn play(&mut self, mov: Move) {
         match mov {
             Move::Drop { piece, to } => self.drop_move(piece, to),
             Move::Board { from, to, promoted } => self.play_move(from, to, promoted),
         }
-        self.zobrist.xor_side_to_move();
-        self.active = !self.active;
+        self.switch_side();
         self.move_counter += 1;
     }
 

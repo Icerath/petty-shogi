@@ -11,7 +11,7 @@ pub struct Search {
 }
 
 impl Engine {
-    pub fn search_root(&mut self, board: &Board, depth: u32, line: &mut Vec<Move>) -> Score {
+    pub fn search_root(&mut self, board: &mut Board, depth: u32, line: &mut Vec<Move>) -> Score {
         self.search(-Score::MAX, Score::MAX, board, depth, &mut NormalSearch { line })
     }
 
@@ -19,7 +19,7 @@ impl Engine {
         &mut self,
         mut alpha: Score,
         beta: Score,
-        board: &Board,
+        board: &mut Board,
         depth: u32,
         kind: &mut K,
     ) -> Score {
@@ -40,9 +40,25 @@ impl Engine {
             return entry.score;
         }
 
+        let line_len = kind.line().map_or(0, |line| line.len());
+
+        if !kind.captures_only() {
+            // null move pruning
+            if depth > 3 && !board.is_check() {
+                board.switch_side();
+                let score = -self.search(-beta, -alpha, board, depth / 3, kind);
+                if let Some(line) = kind.line() {
+                    line.truncate(line_len);
+                }
+                if score >= beta {
+                    return beta;
+                }
+                board.switch_side();
+            }
+        }
+
         let mut movelist = MoveList::new(board);
 
-        let line_len = kind.line().map_or(0, |line| line.len());
         let mut best_line = vec![];
         let mut max_score = -Score::MAX;
         let mut no_moves = true;
@@ -52,12 +68,12 @@ impl Engine {
             board.play(mov);
 
             let mut extension = 0;
-            if board.is_check() {
+            if !kind.captures_only() && board.is_check() {
                 extension += 1;
             }
 
             self.search.depth_from_root += 1;
-            let score = -self.search(-beta, -alpha, &board, depth - 1 + extension, kind).step();
+            let score = -self.search(-beta, -alpha, &mut board, depth - 1 + extension, kind).step();
             self.search.depth_from_root -= 1;
 
             if self.stop.is_stop() {

@@ -130,7 +130,7 @@ impl Engine {
         let mut complete_line = vec![];
         for depth in 1..=max_depth {
             let mut line = vec![];
-            let score = self.search_root(&self.position.clone(), depth, &mut line);
+            let score = self.search_root(&mut self.position.clone(), depth, &mut line);
             if self.stop.is_stop() {
                 break;
             }
