@@ -91,10 +91,7 @@ impl Board {
     }
 
     pub fn pseudolegal_moves_with<R: Receiver>(&self, mask: Bitboard, mut r: R) -> R::Output {
-        let result = match self.pseudolegal_moves_(&mut r, mask).branch() {
-            ControlFlow::Continue(()) => R::Result::output(),
-            ControlFlow::Break(r) => R::Result::from_residual(r),
-        };
+        let result = self.pseudolegal_moves_(&mut r, mask);
         r.finish(result)
     }
 }
