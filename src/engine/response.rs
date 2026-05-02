@@ -3,6 +3,7 @@ use std::fmt;
 use super::score::Score;
 use crate::Move;
 
+#[derive(Debug)]
 pub enum Response {
     Id(Id),
     UsiOk,
@@ -15,6 +16,7 @@ pub enum Response {
     Misc(String),
 }
 
+#[derive(Debug)]
 pub enum Id {
     Name(String),
     Author(String),
@@ -22,7 +24,7 @@ pub enum Id {
 
 macro_rules! define_info {
     ($($field:ident: $ty:ty,)* $(,)?) => {
-        #[derive(Default)]
+        #[derive(Debug, Default)]
         pub struct Info {
             $($field: Option<$ty>),*
         }
@@ -44,7 +46,7 @@ define_info! {
     hashfull: u32,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub enum BestMove {
     Resign,
     Win,
