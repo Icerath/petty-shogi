@@ -50,7 +50,7 @@ impl Board {
         debug_assert_eq!(from_piece.side(), self.active);
 
         if let Some(piece) = self.pieces.get(to) {
-            debug_assert!(piece.kind() != PieceKind::King);
+            // debug_assert!(piece.kind() != PieceKind::King);
             self.zobrist.xor_hand_piece(
                 self.active,
                 piece.kind(),

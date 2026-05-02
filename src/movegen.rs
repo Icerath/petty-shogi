@@ -19,6 +19,10 @@ impl Board {
         .is_break()
     }
 
+    fn any_legal_move(&self) -> bool {
+        self.legal_moves(|_| ControlFlow::Break(())).is_break()
+    }
+
     #[expect(clippy::missing_panics_doc)]
     #[must_use]
     pub fn is_legal(&self, mov: Move) -> bool {
@@ -30,7 +34,7 @@ impl Board {
             && piece == PieceKind::Pawn
             && (self[PieceKind::King] & self[!self.active])
                 .contains(to.forward(self.active).unwrap())
-            && !board.has_legal_move(mov)
+            && !board.any_legal_move()
         {
             return false;
         }
