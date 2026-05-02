@@ -121,6 +121,7 @@ impl Engine {
 
         if let Some(perft) = go.perft {
             self.perft(perft);
+            self.running.store(false, Ordering::SeqCst);
             return;
         }
         self.search = Search::default();
