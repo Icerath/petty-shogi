@@ -42,19 +42,17 @@ impl Engine {
 
         let line_len = kind.line().map_or(0, |line| line.len());
 
-        if !kind.captures_only() {
-            // null move pruning
-            if depth > 3 && !board.is_check() {
-                board.switch_side();
-                let score = -self.search(-beta, -alpha, board, depth / 3, kind);
-                if let Some(line) = kind.line() {
-                    line.truncate(line_len);
-                }
-                if score >= beta {
-                    return beta;
-                }
-                board.switch_side();
+        // null move pruning
+        if !kind.captures_only() && depth > 3 && !board.is_check() {
+            board.switch_side();
+            let score = -self.search(-beta, -alpha, board, depth / 3, kind);
+            if let Some(line) = kind.line() {
+                line.truncate(line_len);
             }
+            if score >= beta {
+                return beta;
+            }
+            board.switch_side();
         }
 
         let mut movelist = MoveList::new(board);
