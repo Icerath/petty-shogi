@@ -62,7 +62,7 @@ impl fmt::Display for Response {
             Self::BestMove(best_move) => write!(f, "bestmove {best_move}"),
             Self::Info(ref info) => write!(f, "info {info}"),
             Self::Misc(ref string) => write!(f, "{string}"),
-            Self::Error(..) => Ok(()), // can I display errors?
+            Self::Error(ref error) => write!(f, "{error}"),
         }
     }
 }
