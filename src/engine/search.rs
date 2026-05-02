@@ -46,13 +46,14 @@ impl Engine {
         if !kind.captures_only() && depth > 3 && !board.is_check() {
             board.switch_side();
             let score = -self.search(-beta, -alpha, board, depth / 3, kind);
+            board.switch_side();
+
             if let Some(line) = kind.line() {
                 line.truncate(line_len);
             }
             if score >= beta {
                 return beta;
             }
-            board.switch_side();
         }
 
         let mut movelist = MoveList::new(board);
