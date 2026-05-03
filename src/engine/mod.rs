@@ -39,7 +39,7 @@ impl Default for Engine {
             recv: None,
             wait: Arc::new((Mutex::new(false), Condvar::new())),
             stop: Stop::default(),
-            ttable: TTable::from_bytes(8 * 1024 * 1024),
+            ttable: TTable::from_bytes(64 * 1024 * 1024),
         }
     }
 }
