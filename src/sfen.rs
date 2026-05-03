@@ -36,49 +36,26 @@ impl Board {
         unsafe { String::from_utf8_unchecked(buf) }
     }
 
-    #[expect(clippy::missing_panics_doc)]
     pub fn write_fen(&self, buf: &mut Vec<u8>) {
-        let mut prev = None::<Square>;
-        for sq in Square::ALL {
-            if let Some(piece) = self.pieces.get(sq) {
-                if let Some(prev) = prev {
-                    if let Some(dif @ 1..) =
-                        (sq.file() as u8).checked_sub((prev.file() as u8 + 1) % 9)
-                    {
-                        buf.push(dif + b'0');
-                    }
-                } else if sq.file() as u8 != 0 {
-                    buf.push(sq.file() as u8 + b'0');
-                }
-                if piece.promoted() {
-                    buf.push(b'+');
-                }
-                let mut symbol = piece.kind().symbol();
-                if piece.side() == Side::Sente {
-                    symbol.make_ascii_uppercase();
-                }
-                buf.push(symbol);
-                prev = Some(sq);
-            }
-            if sq.file() as u8 == 8 && sq != Square::I1 {
-                if !self.pieces.contains(sq) {
-                    if let Some(prev) = prev {
-                        if let dif @ 1.. = 9 - (prev.file() as u8 + 1) % 9 {
-                            buf.push(dif + b'0');
-                        }
-                    } else {
-                        buf.push(b'9');
-                    }
-                }
+        for rank in Rank::ALL {
+            if rank as usize != 0 {
                 buf.push(b'/');
-                prev = Some(sq);
             }
-        }
-
-        if !self.pieces.contains(Square::I9)
-            && let dif @ 1.. = 9 - (prev.unwrap().file() as u8 + 1) % 9
-        {
-            buf.push(dif + b'0');
+            let mut skipped = 0;
+            for sq in rank.mask() {
+                let Some(piece) = self.pieces.get(sq) else {
+                    skipped += 1;
+                    continue;
+                };
+                if skipped != 0 {
+                    buf.push(skipped + b'0');
+                }
+                skipped = 0;
+                _ = write!(buf, "{piece}");
+            }
+            if skipped != 0 {
+                buf.push(skipped + b'0');
+            }
         }
 
         buf.push(b' ');
@@ -188,6 +165,12 @@ fn parse_hands(fen: &[u8]) -> Option<[Hand; 2]> {
 
 #[test]
 fn test_sfen() {
-    assert_eq!(Board::from_sfen(INITIAL_SFEN).unwrap().to_sfen(), INITIAL_SFEN);
     assert_eq!(Board::EMPTY.to_sfen(), "9/9/9/9/9/9/9/9/9 b - 0");
+    macro_rules! test {
+        ($sfen: expr) => {
+            assert_eq!(Board::from_sfen($sfen).unwrap().to_sfen(), $sfen);
+        };
+    }
+    test!(INITIAL_SFEN);
+    test!("+P3kgsnl/3sg2b1/4pp3/+R7p/3LP1p2/3K1PP2/P1PP4P/3b5/6+rNL w N5P2g2snlp 50");
 }
