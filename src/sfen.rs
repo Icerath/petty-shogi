@@ -77,7 +77,7 @@ impl Board {
             }
         }
 
-        write!(buf, " {}", self.move_counter).expect("Writing to a string should not fail");
+        _ = write!(buf, " {}", self.move_counter);
     }
 }
 
