@@ -72,11 +72,7 @@ impl Board {
                         1 => {}
                         count @ 2.. => buf.push(count + b'0'),
                     }
-                    let mut symbol = piece.symbol();
-                    if side == Side::Sente {
-                        symbol.make_ascii_uppercase();
-                    }
-                    buf.push(symbol);
+                    _ = write!(buf, "{}", Piece::new(side, piece, false));
                 }
             }
         }
