@@ -59,8 +59,20 @@ impl Engine {
         let mut movelist = MoveList::new(board);
 
         let mut best_line = vec![];
-        let mut max_score = -Score::MAX;
+
+        let mut max_score =
+            if kind.captures_only() { self.shallow_eval(board) } else { -Score::MATE };
+
+        if kind.captures_only() {
+            if max_score >= beta {
+                return max_score;
+            } else if max_score <= alpha {
+                alpha = max_score;
+            }
+        }
+
         let mut no_moves = true;
+
         while let Some(mov) = movelist.next(board, kind.captures_only()) {
             no_moves = false;
             let mut board = board.clone();
@@ -97,7 +109,7 @@ impl Engine {
         }
 
         if no_moves {
-            return if kind.captures_only() { self.shallow_eval(board) } else { -Score::MATE };
+            return max_score;
         }
 
         if !kind.captures_only() {
