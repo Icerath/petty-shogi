@@ -4,7 +4,7 @@ use petty_shogi::{Engine, command::Command, response::Response};
 #[derive(Parser)]
 pub struct Cli {
     #[arg(short, long)]
-    pub run: String,
+    pub run: Option<String>,
 }
 
 fn main() {
@@ -15,9 +15,11 @@ fn main() {
         Response::Misc(message) => eprintln!("{message}"),
         _ => println!("{response}"),
     });
-    for command in cli.run.split("\\n") {
-        process_command(&mut engine, command);
-        engine.wait();
+    if let Some(run) = &cli.run {
+        for command in run.split("\\n") {
+            process_command(&mut engine, command);
+            engine.wait();
+        }
     }
     let mut line = String::new();
     loop {
