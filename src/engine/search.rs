@@ -7,7 +7,8 @@ use crate::{
 #[derive(Default, Clone)]
 pub struct Search {
     pub nodes: u64,
-    pub depth_from_root: u64,
+    pub depth_from_root: u32,
+    pub max_seldepth: u32,
 }
 
 impl Engine {
@@ -23,6 +24,7 @@ impl Engine {
         depth: u32,
         kind: &mut K,
     ) -> Score {
+        self.search.max_seldepth = self.search.max_seldepth.max(self.search.depth_from_root);
         if depth == 0 {
             if kind.captures_only() {
                 return self.shallow_eval(board);
@@ -45,7 +47,9 @@ impl Engine {
         // null move pruning
         if !kind.captures_only() && depth > 3 && !board.is_check() {
             board.switch_side();
+            self.search.depth_from_root += 1;
             let score = -self.search(-beta, -alpha, board, depth / 3, kind);
+            self.search.depth_from_root -= 1;
             board.switch_side();
 
             if let Some(line) = kind.line() {

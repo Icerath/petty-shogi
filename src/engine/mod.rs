@@ -138,6 +138,7 @@ impl Engine {
         let start = Instant::now();
         let mut complete_line = vec![];
         for depth in 1..=max_depth {
+            self.search.max_seldepth = 0;
             let mut line = vec![];
             let score = self.search_root(&mut self.position.clone(), depth, &mut line);
             if self.stop.is_stop() {
@@ -146,6 +147,7 @@ impl Engine {
             self.recv(Response::Info(
                 Info::default()
                     .depth(depth)
+                    .seldepth(self.search.max_seldepth)
                     .time(u32::try_from(start.elapsed().as_millis()).unwrap_or(u32::MAX))
                     .nodes(self.search.nodes)
                     .hashfull(self.ttable.hashfull())

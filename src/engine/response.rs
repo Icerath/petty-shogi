@@ -39,6 +39,7 @@ macro_rules! define_info {
 
 define_info! {
     depth: u32,
+    seldepth: u32,
     time: u32,
     nodes: u64,
     score: Score,
@@ -94,7 +95,7 @@ impl fmt::Display for BestMove {
 
 impl fmt::Display for Info {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let Self { depth, time, nodes, score, ref line, hashfull } = *self;
+        let Self { depth, seldepth, time, nodes, score, ref line, hashfull } = *self;
         let nps = time
             .filter(|time| *time != 0)
             .and_then(|time| nodes.map(|nodes| nodes * 1000 / u64::from(time)));
@@ -107,7 +108,7 @@ impl fmt::Display for Info {
             };
         }
 
-        display!(depth, score, time, nodes, nps, hashfull);
+        display!(depth, seldepth, score, time, nodes, nps, hashfull);
 
         if let Some(line) = line {
             write!(f, "pv ")?;
