@@ -84,6 +84,7 @@ impl<R: Receiver> Receiver for Legal<'_, R> {
     }
 }
 
+#[expect(unused)]
 pub struct FilterPromote<const FILTER: bool, R>(pub R);
 
 impl<const FILTER: bool, R: Receiver> Receiver for FilterPromote<FILTER, R> {
