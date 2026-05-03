@@ -9,10 +9,7 @@ mod transposition_table;
 
 use std::{
     ops::ControlFlow,
-    sync::{
-        Arc,
-        atomic::{AtomicBool, Ordering},
-    },
+    sync::{Arc, Condvar, Mutex},
     time::{Duration, Instant},
 };
 
@@ -29,7 +26,7 @@ pub struct Engine {
     position: Board,
     search: Search,
     recv: Option<Arc<dyn Fn(Response) + 'static + Send + Sync>>,
-    running: Arc<AtomicBool>,
+    wait: Arc<(Mutex<bool>, Condvar)>,
     stop: Stop,
     ttable: transposition_table::TTable,
 }
@@ -40,7 +37,7 @@ impl Default for Engine {
             position: Board::start_pos(),
             search: Search::default(),
             recv: None,
-            running: Arc::new(AtomicBool::new(false)),
+            wait: Arc::new((Mutex::new(false), Condvar::new())),
             stop: Stop::default(),
             ttable: TTable::from_bytes(8 * 1024 * 1024),
         }
@@ -91,8 +88,19 @@ impl Engine {
         }
     }
 
+    #[expect(clippy::missing_panics_doc)]
+    /// blocks until the current go command finishes
+    pub fn wait(&self) {
+        loop {
+            let guard = self.wait.0.lock().unwrap();
+            if !*self.wait.1.wait(guard).unwrap() {
+                break;
+            }
+        }
+    }
+
     fn go(&self, go: GoCommand) {
-        if self.running.load(Ordering::SeqCst) {
+        if *self.wait.0.lock().unwrap() {
             self.recv(Response::Error(
                 "you must stop the previous go command before calling go again".into(),
             ));
@@ -104,13 +112,13 @@ impl Engine {
             recv: self.recv.clone(),
             stop: self.stop.clone(),
             ttable: self.ttable.clone(),
-            running: self.running.clone(),
+            wait: self.wait.clone(),
         };
         std::thread::spawn(move || engine.go_blocking(&go));
     }
 
     fn go_blocking(&mut self, go: &GoCommand) {
-        self.running.store(true, Ordering::SeqCst);
+        *self.wait.0.lock().unwrap() = true;
         self.stop.reset();
         if let Some(time) = go.movetime {
             self.stop.time_limit(Instant::now(), Duration::from_millis(time.into()));
@@ -121,7 +129,8 @@ impl Engine {
 
         if let Some(perft) = go.perft {
             self.perft(perft);
-            self.running.store(false, Ordering::SeqCst);
+            *self.wait.0.lock().unwrap() = false;
+            self.wait.1.notify_all();
             return;
         }
         self.search = Search::default();
@@ -153,7 +162,8 @@ impl Engine {
         } else {
             self.recv(Response::BestMove(BestMove::Resign));
         }
-        self.running.store(false, Ordering::SeqCst);
+        *self.wait.0.lock().unwrap() = false;
+        self.wait.1.notify_all();
     }
 
     fn perft(&self, depth: u32) {
