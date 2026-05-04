@@ -7,7 +7,7 @@ use crate::{Bitboard, File, Move, Piece, PieceKind, Rank, Side, Square, zobrist:
 
 pub type Hand = [u8; PieceKind::LEN];
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct Board {
     pub pieces: Pieces,
     pub hands: [Hand; 2],
@@ -88,7 +88,7 @@ impl Board {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Eq)]
 #[expect(clippy::struct_field_names)]
 pub struct Pieces {
     pub sides: [Bitboard; 2],
