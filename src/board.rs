@@ -161,6 +161,15 @@ impl IndexMut<Side> for Board {
     }
 }
 
+impl fmt::Debug for Board {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Board")
+            .field("sfen", &self.to_sfen())
+            .field("hash", &self.zobrist)
+            .finish_non_exhaustive()
+    }
+}
+
 impl fmt::Display for Board {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut out = String::new();
