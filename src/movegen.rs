@@ -23,26 +23,30 @@ impl Board {
         self.legal_moves(|_| ControlFlow::Break(())).is_break()
     }
 
-    #[expect(clippy::missing_panics_doc)]
     #[must_use]
     pub fn is_legal(&self, mov: Move) -> bool {
         let mut board = self.clone();
         board.play(mov);
+        board.was_legal(mov)
+    }
 
+    // checks if a move was legal after playing
+    #[must_use]
+    pub(crate) fn was_legal(&self, mov: Move) -> bool {
         // check for pawn drop mate
         if let Move::Drop { piece, to } = mov
             && piece == PieceKind::Pawn
-            && (self[PieceKind::King] & self[!self.active])
-                .contains(to.forward(self.active).unwrap())
-            && !board.any_legal_move()
+            && (self[PieceKind::King] & self[self.active])
+                .contains(unsafe { to.back_unchecked(self.active) })
+            && !self.any_legal_move()
         {
             return false;
         }
 
-        let Some(king_square) = (board[PieceKind::King] & board[self.active]).bitscan() else {
+        let Some(king_square) = (self[PieceKind::King] & self[!self.active]).bitscan() else {
             return true;
         };
-        board.gen_attackers(king_square, self.active).is_empty()
+        self.gen_attackers(king_square, !self.active).is_empty()
     }
 
     #[must_use]

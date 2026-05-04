@@ -81,6 +81,9 @@ impl Engine {
             no_moves = false;
             let mut board = board.clone();
             board.play(mov);
+            if !board.was_legal(mov) {
+                continue;
+            }
 
             let mut extension = 0;
             if !kind.captures_only() && board.is_check() {

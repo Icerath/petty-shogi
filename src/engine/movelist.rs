@@ -18,8 +18,7 @@ impl MoveList {
 impl MoveList {
     pub fn next(&mut self, board: &Board, captures_only: bool) -> Option<Move> {
         match self.next_move() {
-            Some(mov) if board.is_legal(mov) => Some(mov),
-            Some(_) => self.next(board, captures_only),
+            Some(mov) => Some(mov),
             None if captures_only || self.generated_noncaptures => None,
             None => {
                 self.generated_noncaptures = true;
