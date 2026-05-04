@@ -19,7 +19,7 @@ impl Board {
         }
         match depth {
             0 => return ControlFlow::Continue(1),
-            1 => return ControlFlow::Continue(self.legal_moves(0)),
+            1 => return ControlFlow::Continue(self.legal_moves(0u64)),
             _ => {}
         }
         let mut sum = 0;

@@ -98,7 +98,11 @@ impl Board {
         self.pseudolegal_moves_with(Bitboard::FULL, r)
     }
 
-    pub fn pseudolegal_moves_with<R: Receiver>(&self, mask: Bitboard, mut r: R) -> R::Output {
+    pub fn pseudolegal_moves_with<R: Receiver>(&self, mask: Bitboard, r: R) -> R::Output {
+        self.pseudolegal_moves_all(mask & !self[self.active], r)
+    }
+
+    pub fn pseudolegal_moves_all<R: Receiver>(&self, mask: Bitboard, mut r: R) -> R::Output {
         let result = self.pseudolegal_moves_(&mut r, mask);
         r.finish(result)
     }

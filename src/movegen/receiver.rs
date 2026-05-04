@@ -51,18 +51,23 @@ impl Receiver for &mut Vec<Move> {
     fn finish(self, (): ()) {}
 }
 
-impl Receiver for u64 {
-    type Output = Self;
-    type Result = ();
+macro_rules! recv_int {
+    ($($int:ty),* $(,)?) => {
+        $(impl Receiver for $int {
+            type Output = Self;
+            type Result = ();
 
-    fn recv(&mut self, _: Move) {
-        *self += 1;
-    }
+            fn recv(&mut self, _: Move) {
+                *self += 1;
+            }
 
-    fn finish(self, (): ()) -> Self::Output {
-        self
-    }
+            fn finish(self, (): ()) -> Self::Output {
+                self
+            }
+        })*
+    };
 }
+recv_int!(u16, u32, u64, u128, i16, i32, i64, i128);
 
 pub struct Legal<'a, R> {
     pub board: &'a Board,

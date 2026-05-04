@@ -160,6 +160,9 @@ impl Engine {
                     sum += i32::from(board.hands[side][kind]) * piece_value::hand(kind);
                 }
             }
+            let mut board = board.clone();
+            board.active = side;
+            sum += board.pseudolegal_moves_all(board[side], 0i32) * 5;
             sum_both += if side == Side::Sente { sum } else { -sum };
         }
         sum_both

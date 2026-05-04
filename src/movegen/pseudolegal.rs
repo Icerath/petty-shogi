@@ -22,7 +22,6 @@ impl Board {
             Some(king_square) => self.gen_attackers(king_square, self.active),
             None => Bitboard::EMPTY,
         };
-        let mask = !self[self.active] & mask;
         macro_rules! moves {
             ($($ident:ident),* $(,)?) => {
                 $(ptry!(self.$ident(mask, r)));*
