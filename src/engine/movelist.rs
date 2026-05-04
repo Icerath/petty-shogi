@@ -45,6 +45,11 @@ impl MoveList {
             let to_piece = board.pieces.get(to).unwrap();
             score += piece_value::board(to_piece) - piece_value::board(from_piece);
         }
+        let mut board = board.clone();
+        board.play(mov);
+        if board.is_check() {
+            score += 50;
+        }
         self.moves.push((mov, Score(score)));
     }
 
