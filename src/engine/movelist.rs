@@ -50,6 +50,9 @@ impl MoveList {
         if board.is_check() {
             score += 50;
         }
+        if let Move::Board { promoted: true, .. } = mov {
+            score += 50;
+        }
         self.moves.push((mov, Score(score)));
     }
 
