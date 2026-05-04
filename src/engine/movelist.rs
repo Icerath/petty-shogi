@@ -1,5 +1,5 @@
 use super::{piece_value, score::Score};
-use crate::{Bitboard, Board, Move};
+use crate::{Board, Move};
 
 pub struct MoveList {
     moves: Vec<(Move, Score)>,
@@ -10,7 +10,7 @@ pub struct MoveList {
 impl MoveList {
     pub fn new(board: &Board) -> Self {
         let mut movelist = Self { moves: vec![], index: 0, generated_noncaptures: false };
-        movelist.generate_moves(board[!board.active], board);
+        movelist.generate_moves::<true>(board);
         movelist
     }
 }
@@ -22,21 +22,23 @@ impl MoveList {
             None if captures_only || self.generated_noncaptures => None,
             None => {
                 self.generated_noncaptures = true;
-                self.generate_moves(!board[!board.active], board);
+                self.generate_moves::<false>(board);
                 self.next(board, captures_only)
             }
         }
     }
 
-    fn generate_moves(&mut self, mask: Bitboard, board: &Board) {
+    fn generate_moves<const CAPTURES: bool>(&mut self, board: &Board) {
         self.moves.clear();
         self.index = 0;
-        board.pseudolegal_moves_with(mask, |mov| self.push_move(board, mov));
+        let mask = if CAPTURES { board[!board.active] } else { !board[!board.active] };
+        board.pseudolegal_moves_with(mask, |mov| self.push_move::<CAPTURES>(board, mov));
     }
 
-    fn push_move(&mut self, board: &Board, mov: Move) {
+    fn push_move<const CAPTURES: bool>(&mut self, board: &Board, mov: Move) {
         let mut score = 0;
-        if let Move::Board { from, to, .. } = mov
+        if CAPTURES
+            && let Move::Board { from, to, .. } = mov
             && board[!board.active].contains(to)
         {
             let from_piece = board.pieces.get(from).unwrap();
