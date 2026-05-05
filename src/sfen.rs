@@ -135,11 +135,8 @@ fn parse_hands(fen: &[u8]) -> Option<[Hand; 2]> {
         let kind = loop {
             break match c.to_ascii_lowercase() {
                 b'0'..=b'9' => {
-                    if number.is_some() {
-                        return None;
-                    }
-                    number = Some(c - b'0');
-                    // TODO: check for promoted flag
+                    let digit = c - b'0';
+                    number = Some(number.map_or(0, |n| n * 10) + digit);
                     c = fen.next()?;
                     continue;
                 }
