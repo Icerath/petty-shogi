@@ -70,7 +70,7 @@ impl Board {
                     match self.hands[side][piece] {
                         0 => continue,
                         1 => {}
-                        count @ 2.. => buf.push(count + b'0'),
+                        count @ 2.. => _ = write!(buf, "{count}"),
                     }
                     _ = write!(buf, "{}", Piece::new(side, piece, false));
                 }
