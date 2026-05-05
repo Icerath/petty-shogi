@@ -68,7 +68,7 @@ impl Engine {
         let mut max_score =
             if kind.captures_only() { self.shallow_eval(board) } else { -Score::MATE };
 
-        if kind.captures_only() {
+        if kind.captures_only() && !board.is_check() {
             if max_score >= beta {
                 return max_score;
             } else if max_score <= alpha {
