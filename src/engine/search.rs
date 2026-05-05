@@ -16,6 +16,7 @@ impl Engine {
         self.search(-Score::MAX, Score::MAX, board, depth, &mut NormalSearch { line })
     }
 
+    #[expect(clippy::too_many_lines)]
     fn search<K: SearchKind>(
         &mut self,
         mut alpha: Score,
@@ -77,6 +78,7 @@ impl Engine {
 
         let mut no_moves = true;
 
+        let mut move_count = 0;
         while let Some(mov) = movelist.next(board, kind.captures_only()) {
             no_moves = false;
             let mut board = board.clone();
@@ -84,18 +86,32 @@ impl Engine {
             if !board.was_legal(mov) {
                 continue;
             }
+            move_count += 1;
 
-            let mut extension = 0;
-            if !kind.captures_only() && board.is_check() {
-                extension += 1;
+            let mut next_depth = depth - 1;
+
+            let late_move_reduction = || depth > 2 && move_count >= 2;
+
+            if !kind.captures_only() {
+                if board.is_check() {
+                    next_depth += 1;
+                }
+                if late_move_reduction() {
+                    next_depth -= 1;
+                }
             }
 
             self.search.depth_from_root += 1;
-            let score = -self.search(-beta, -alpha, &mut board, depth - 1 + extension, kind).step();
+            let mut score = -self.search(-beta, -alpha, &mut board, next_depth, kind).step();
             self.search.depth_from_root -= 1;
 
             if self.stop.is_stop() {
                 return score;
+            }
+
+            if !kind.captures_only() && score >= beta && late_move_reduction() {
+                // repeat search if late move reduction search fails high
+                score = -self.search(-beta, -alpha, &mut board, next_depth + 1, kind).step();
             }
 
             if let Some(line) = kind.line() {
