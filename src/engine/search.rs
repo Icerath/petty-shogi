@@ -71,7 +71,7 @@ impl Engine {
         if kind.captures_only() && !board.is_check() {
             if max_score >= beta {
                 return max_score;
-            } else if max_score <= alpha {
+            } else if max_score > alpha {
                 alpha = max_score;
             }
         }
