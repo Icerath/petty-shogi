@@ -61,10 +61,6 @@ impl Engine {
             }
         }
 
-        let mut movelist = MoveList::new(board);
-
-        let mut best_line = vec![];
-
         let mut max_score =
             if kind.captures_only() { self.shallow_eval(board) } else { -Score::MATE };
 
@@ -77,8 +73,9 @@ impl Engine {
         }
 
         let mut no_moves = true;
-
         let mut move_count = 0;
+        let mut best_line = vec![];
+        let mut movelist = MoveList::new(board);
         while let Some(mov) = movelist.next(board, kind.captures_only()) {
             no_moves = false;
             let mut board = board.clone();
