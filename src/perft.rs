@@ -23,10 +23,12 @@ impl Board {
             _ => {}
         }
         let mut sum = 0;
-        self.legal_moves(|mov| {
+        self.pseudolegal_moves(|mov| {
             let mut board = self.clone();
             board.play(mov);
-            sum += board.try_perft(depth - 1, stop)?;
+            if board.was_legal(mov) {
+                sum += board.try_perft(depth - 1, stop)?;
+            }
             ControlFlow::Continue(())
         })?;
         ControlFlow::Continue(sum)
