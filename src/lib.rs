@@ -23,6 +23,7 @@ pub use square::{File, Rank, Square};
 
 /// Similar to the currently unstable `std::ops::Try`, but also implemented for `()`.
 // I really really wish the std Try trait worked here and was stable, but too bad.
+#[must_use]
 pub trait Try {
     type Residual;
 

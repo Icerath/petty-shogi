@@ -55,41 +55,40 @@ impl Board {
 
         macro_rules! drop {
             ($piece:expr, $to:expr) => {
-                r.recv(Move::Drop { piece: $piece, to: $to })
+                ptry!(r.recv(Move::Drop { piece: $piece, to: $to }))
             };
         }
 
         // pawns
         if self.hands[self.active][PieceKind::Pawn] > 0 {
             let mut busy_files = Bitboard::EMPTY;
-            (self[PieceKind::Pawn] & !self.pieces.promoted & self[self.active]).for_each(|sq| {
+            for sq in self[PieceKind::Pawn] & !self.pieces.promoted & self[self.active] {
                 busy_files |= sq.file().mask();
-            });
-            ptry!(
-                (empty_squares & !self.active.end_rank().mask() & !busy_files)
-                    .for_each(|sq| drop!(PieceKind::Pawn, sq))
-            );
+            }
+            for sq in empty_squares & !self.active.end_rank().mask() & !busy_files {
+                drop!(PieceKind::Pawn, sq);
+            }
         }
         // lances
         if self.hands[self.active][PieceKind::Lance] > 0 {
-            ptry!(
-                (empty_squares & !self.active.end_rank().mask())
-                    .for_each(|sq| drop!(PieceKind::Lance, sq))
-            );
+            for sq in empty_squares & !self.active.end_rank().mask() {
+                drop!(PieceKind::Lance, sq);
+            }
         }
         // knights
         if self.hands[self.active][PieceKind::Knight] > 0 {
-            ptry!(
-                (empty_squares & !self.active.promotion_zone().shift_forward(self.active))
-                    .for_each(|sq| drop!(PieceKind::Knight, sq))
-            );
+            for sq in empty_squares & !self.active.promotion_zone().shift_forward(self.active) {
+                drop!(PieceKind::Knight, sq);
+            }
         }
         // rest
         for &piece in &PieceKind::ALL[PieceKind::Silver as usize..PieceKind::King as usize] {
             if self.hands[self.active][piece] == 0 {
                 continue;
             }
-            ptry!(empty_squares.for_each(|sq| drop!(piece, sq)));
+            for sq in empty_squares {
+                drop!(piece, sq);
+            }
         }
         R::Result::output()
     }
@@ -124,22 +123,22 @@ impl Board {
         let mut pawns = self[PieceKind::Pawn] & !self.pieces.promoted & self[self.active];
         pawns &= mask.shift_back(self.active);
         if let Some(false) | None = R::PROMOTE_FILTER {
-            ptry!((pawns & NOPROMOTE[self.active]).for_each(|sq| {
-                r.recv(Move::Board {
+            for sq in pawns & NOPROMOTE[self.active] {
+                ptry!(r.recv(Move::Board {
                     from: sq,
                     to: unsafe { sq.forward_unchecked(self.active) },
                     promoted: false,
-                })
-            }));
+                }));
+            }
         }
         if let Some(true) | None = R::PROMOTE_FILTER {
-            ptry!((pawns & PROMOTE[self.active]).for_each(|sq| {
-                r.recv(Move::Board {
+            for sq in pawns & PROMOTE[self.active] {
+                ptry!(r.recv(Move::Board {
                     from: sq,
                     to: unsafe { sq.forward_unchecked(self.active) },
                     promoted: true,
-                })
-            }));
+                }));
+            }
         }
         R::Result::output()
     }
@@ -156,14 +155,15 @@ impl Board {
 
     fn silver_moves<R: Receiver>(&self, mask: Bitboard, r: &mut R) -> R::Result {
         let bb = self[PieceKind::Silver] & !self.pieces.promoted & self[self.active];
-        ptry!(bb.for_each(|sq| silver(self, mask, sq, r)));
-
+        for sq in bb {
+            ptry!(silver(self, mask, sq, r));
+        }
         if let Some(false) = R::PROMOTE_FILTER {
             return R::Result::output();
         }
 
         let promotion_escape = if self.active == Side::Sente { Rank::C } else { Rank::G };
-        (bb & promotion_escape.mask()).for_each(|sq| {
+        for sq in bb & promotion_escape.mask() {
             let back = unsafe { sq.back(self.active).unwrap_unchecked() };
             if let Some(left) = back.left()
                 && !self[self.active].contains(left)
@@ -177,8 +177,8 @@ impl Board {
             {
                 ptry!(r.recv(Move::Board { from: sq, to: right, promoted: true }));
             }
-            R::Result::output()
-        })
+        }
+        R::Result::output()
     }
 
     pub(crate) fn gold_move_pieces(&self) -> Bitboard {
@@ -197,29 +197,23 @@ impl Board {
     }
 
     fn bishop_moves<R: Receiver>(&self, mask: Bitboard, r: &mut R) -> R::Result {
-        ptry!(
-            (self[PieceKind::Bishop] & self[self.active] & !self.pieces.promoted)
-                .for_each(|sq| bishop::<false, _>(self, mask, sq, r))
-        );
-
+        for sq in self[PieceKind::Bishop] & self[self.active] & !self.pieces.promoted {
+            ptry!(bishop::<false, _>(self, mask, sq, r));
+        }
         if let Some(true) = R::PROMOTE_FILTER {
             return R::Result::output();
         }
-
         (self[PieceKind::Bishop] & self[self.active] & self.pieces.promoted)
             .for_each(|sq| bishop::<true, _>(self, mask, sq, r))
     }
 
     fn rook_moves<R: Receiver>(&self, mask: Bitboard, r: &mut R) -> R::Result {
-        ptry!(
-            (self[PieceKind::Rook] & self[self.active] & !self.pieces.promoted)
-                .for_each(|sq| rook::<false, _>(self, mask, sq, r))
-        );
-
+        for sq in self[PieceKind::Rook] & self[self.active] & !self.pieces.promoted {
+            ptry!(rook::<false, _>(self, mask, sq, r));
+        }
         if let Some(true) = R::PROMOTE_FILTER {
             return R::Result::output();
         }
-
         (self[PieceKind::Rook] & self[self.active] & self.pieces.promoted)
             .for_each(|sq| rook::<true, _>(self, mask, sq, r))
     }
@@ -236,36 +230,28 @@ fn lance<R: Receiver>(board: &Board, mask: Bitboard, sq: Square, r: &mut R) -> R
     let bb = lance_moves(sq, board.pieces.all(), board.active) & mask;
     let end_rank = board.active.end_rank();
     if let Some(false) | None = R::PROMOTE_FILTER {
-        ptry!((bb & !end_rank.mask()).for_each(|to| r.recv(Move::Board {
-            from: sq,
-            to,
-            promoted: false
-        })));
+        for to in bb & !end_rank.mask() {
+            ptry!(r.recv(Move::Board { from: sq, to, promoted: false }));
+        }
     }
     if let Some(true) | None = R::PROMOTE_FILTER {
-        ptry!((bb & board.active.promotion_zone()).for_each(|to| r.recv(Move::Board {
-            from: sq,
-            to,
-            promoted: true
-        })));
+        for to in bb & board.active.promotion_zone() {
+            ptry!(r.recv(Move::Board { from: sq, to, promoted: true }));
+        }
     }
     R::Result::output()
 }
 
 fn knight<R: Receiver>(board: &Board, mask: Bitboard, sq: Square, r: &mut R) -> R::Result {
     if let Some(false) | None = R::PROMOTE_FILTER {
-        ptry!((KNIGHT_LUT[board.active][sq] & mask).for_each(|to| r.recv(Move::Board {
-            from: sq,
-            to,
-            promoted: false
-        })));
+        for to in KNIGHT_LUT[board.active][sq] & mask {
+            ptry!(r.recv(Move::Board { from: sq, to, promoted: false }));
+        }
     }
     if let Some(true) | None = R::PROMOTE_FILTER {
-        ptry!((KNIGHT_PROMOTION_LUT[board.active][sq] & mask).for_each(|to| r.recv(Move::Board {
-            from: sq,
-            to,
-            promoted: true
-        })));
+        for to in KNIGHT_PROMOTION_LUT[board.active][sq] & mask {
+            ptry!(r.recv(Move::Board { from: sq, to, promoted: true }));
+        }
     }
     R::Result::output()
 }
@@ -273,14 +259,14 @@ fn knight<R: Receiver>(board: &Board, mask: Bitboard, sq: Square, r: &mut R) -> 
 fn silver<R: Receiver>(board: &Board, mask: Bitboard, sq: Square, r: &mut R) -> R::Result {
     let bb = SILVER_LUT[board.active][sq] & mask;
     if let Some(false) | None = R::PROMOTE_FILTER {
-        ptry!(bb.for_each(|to| r.recv(Move::Board { from: sq, to, promoted: false })));
+        for to in bb {
+            ptry!(r.recv(Move::Board { from: sq, to, promoted: false }));
+        }
     }
     if let Some(true) | None = R::PROMOTE_FILTER {
-        ptry!((bb & board.active.promotion_zone()).for_each(|to| r.recv(Move::Board {
-            from: sq,
-            to,
-            promoted: true
-        })));
+        for to in bb & board.active.promotion_zone() {
+            ptry!(r.recv(Move::Board { from: sq, to, promoted: true }));
+        }
     }
     R::Result::output()
 }
@@ -311,11 +297,15 @@ fn bishop_rook_finish<const PROMOTED: bool, R: Receiver>(
         return R::Result::output();
     }
     if sq.is_promotion_zone(board.active) {
-        bb.for_each(|to| r.recv(Move::Board { from: sq, to, promoted: true }))
+        for to in bb {
+            ptry!(r.recv(Move::Board { from: sq, to, promoted: true }));
+        }
     } else {
-        (bb & board.active.promotion_zone())
-            .for_each(|to| r.recv(Move::Board { from: sq, to, promoted: true }))
+        for to in bb & board.active.promotion_zone() {
+            ptry!(r.recv(Move::Board { from: sq, to, promoted: true }));
+        }
     }
+    R::Result::output()
 }
 
 fn bishop<const PROMOTED: bool, R: Receiver>(
