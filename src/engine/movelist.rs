@@ -8,34 +8,39 @@ pub struct MoveList {
 }
 
 impl MoveList {
-    pub fn new(board: &Board) -> Self {
+    pub fn new(board: &Board, tt_move: Option<Move>) -> Self {
         let mut movelist = Self { moves: vec![], index: 0, generated_noncaptures: false };
-        movelist.generate_moves::<true>(board);
+        movelist.generate_moves::<true>(board, tt_move);
         movelist
     }
-}
 
-impl MoveList {
-    pub fn next(&mut self, board: &Board, captures_only: bool) -> Option<Move> {
+    pub fn next(
+        &mut self,
+        board: &Board,
+        captures_only: bool,
+        tt_move: Option<Move>,
+    ) -> Option<Move> {
         match self.next_move() {
             Some(mov) => Some(mov),
             None if captures_only || self.generated_noncaptures => None,
             None => {
                 self.generated_noncaptures = true;
-                self.generate_moves::<false>(board);
-                self.next(board, captures_only)
+                self.generate_moves::<false>(board, tt_move);
+                self.next(board, captures_only, tt_move)
             }
         }
     }
 
-    fn generate_moves<const CAPTURES: bool>(&mut self, board: &Board) {
+    fn generate_moves<const CAPTURES: bool>(&mut self, board: &Board, tt_move: Option<Move>) {
         self.moves.clear();
         self.index = 0;
         let mask = if CAPTURES { board[!board.active] } else { !board[!board.active] };
-        board.pseudolegal_moves_with(mask, |mov| self.push_move::<CAPTURES>(board, mov));
+        board.pseudolegal_moves_with(mask, |mov| {
+            self.push_move::<CAPTURES>(board, mov, tt_move);
+        });
     }
 
-    fn push_move<const CAPTURES: bool>(&mut self, board: &Board, mov: Move) {
+    fn push_move<const CAPTURES: bool>(&mut self, board: &Board, mov: Move, tt_move: Option<Move>) {
         let mut score = 0;
         if CAPTURES
             && let Move::Board { from, to, .. } = mov
@@ -53,6 +58,10 @@ impl MoveList {
         if let Move::Board { promoted: true, .. } = mov {
             score += 50;
         }
+        if tt_move == Some(mov) {
+            score += 100;
+        }
+
         self.moves.push((mov, Score(score)));
     }
 

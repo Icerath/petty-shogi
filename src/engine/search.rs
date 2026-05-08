@@ -36,11 +36,20 @@ impl Engine {
         if self.stop.is_stop() {
             return Score(0);
         }
+
+        let mut tt_move = None;
+
         if !kind.captures_only()
             && self.search.depth_from_root > 0
-            && let Some(entry) = self.ttable.get(board.zobrist, alpha, beta, depth)
+            && let Some(entry) = self.ttable.get(board.zobrist)
         {
-            return entry.score;
+            if let Some(score) = entry.score(alpha, beta, depth) {
+                if let (Some(mov), Some(line)) = (entry.mov, kind.line()) {
+                    line.push(mov);
+                }
+                return score;
+            }
+            tt_move = entry.mov;
         }
 
         let line_len = kind.line().map_or(0, |line| line.len());
@@ -61,22 +70,23 @@ impl Engine {
             }
         }
 
-        let mut max_score =
+        let mut best_score =
             if kind.captures_only() { self.shallow_eval(board) } else { -Score::MATE };
+        let mut best_move = None;
 
         if kind.captures_only() && !board.is_check() {
-            if max_score >= beta {
-                return max_score;
-            } else if max_score > alpha {
-                alpha = max_score;
+            if best_score >= beta {
+                return best_score;
+            } else if best_score > alpha {
+                alpha = best_score;
             }
         }
 
         let mut no_moves = true;
         let mut move_count = 0;
         let mut best_line = vec![];
-        let mut movelist = MoveList::new(board);
-        while let Some(mov) = movelist.next(board, kind.captures_only()) {
+        let mut movelist = MoveList::new(board, tt_move);
+        while let Some(mov) = movelist.next(board, kind.captures_only(), tt_move) {
             no_moves = false;
             let mut board = board.clone();
             board.play(mov);
@@ -112,7 +122,7 @@ impl Engine {
             }
 
             if let Some(line) = kind.line() {
-                if score > max_score {
+                if score > best_score {
                     best_line.clear();
                     best_line.push(mov);
                     best_line.extend(line[line_len..].iter().copied());
@@ -120,8 +130,12 @@ impl Engine {
                 line.truncate(line_len);
             }
 
-            max_score = score.max(max_score);
-            alpha = alpha.max(max_score);
+            if score > best_score {
+                best_score = score;
+                best_move = Some(mov);
+            }
+
+            alpha = alpha.max(best_score);
 
             if alpha >= beta {
                 break;
@@ -129,24 +143,24 @@ impl Engine {
         }
 
         if no_moves {
-            return max_score;
+            return best_score;
         }
 
         if !kind.captures_only() {
             let nodetype = if alpha >= beta {
                 Nodetype::Beta
-            } else if alpha == max_score {
+            } else if alpha == best_score {
                 Nodetype::Exact
             } else {
                 Nodetype::Alpha
             };
-            self.ttable.insert(board.zobrist, depth, max_score, nodetype);
+            self.ttable.insert(board.zobrist, depth, best_score, best_move, nodetype);
         }
 
         if let Some(parent_line) = kind.line() {
             parent_line.extend(best_line);
         }
-        max_score
+        best_score
     }
 
     fn shallow_eval(&mut self, board: &Board) -> Score {
