@@ -82,14 +82,12 @@ impl Engine {
             }
         }
 
-        let mut no_moves = true;
         let mut move_count = 0;
         let mut best_line = vec![];
         let mut movelist = MoveList::new();
         while let Some(mov) =
             movelist.next(board, kind.captures_only(), super::move_ordering::order(board, tt_move))
         {
-            no_moves = false;
             let mut board = board.clone();
             board.play(mov);
             if !board.was_legal(mov) {
@@ -144,7 +142,7 @@ impl Engine {
             }
         }
 
-        if no_moves {
+        if move_count == 0 {
             return best_score;
         }
 
