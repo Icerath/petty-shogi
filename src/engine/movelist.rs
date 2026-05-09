@@ -1,68 +1,58 @@
-use super::{piece_value, score::Score};
+use super::score::Score;
 use crate::{Board, Move};
 
 pub struct MoveList {
     moves: Vec<(Move, Score)>,
     index: usize,
-    generated_noncaptures: bool,
+    state: State,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum State {
+    Start,
+    GeneratedCaptures,
+    GeneratedNonCaptures,
 }
 
 impl MoveList {
-    pub fn new(board: &Board, tt_move: Option<Move>) -> Self {
-        let mut movelist = Self { moves: vec![], index: 0, generated_noncaptures: false };
-        movelist.generate_moves::<true>(board, tt_move);
-        movelist
+    pub fn new() -> Self {
+        Self { moves: vec![], index: 0, state: State::Start }
     }
 
     pub fn next(
         &mut self,
         board: &Board,
         captures_only: bool,
-        tt_move: Option<Move>,
+        order: impl Fn(Move) -> Score + Copy,
     ) -> Option<Move> {
         match self.next_move() {
             Some(mov) => Some(mov),
-            None if captures_only || self.generated_noncaptures => None,
-            None => {
-                self.generated_noncaptures = true;
-                self.generate_moves::<false>(board, tt_move);
-                self.next(board, captures_only, tt_move)
-            }
+            None => match self.state {
+                State::Start => {
+                    self.generate_moves::<true>(board, order);
+                    self.state = State::GeneratedCaptures;
+                    self.next(board, captures_only, order)
+                }
+                State::GeneratedCaptures if captures_only => None,
+                State::GeneratedCaptures => {
+                    self.generate_moves::<false>(board, order);
+                    self.state = State::GeneratedNonCaptures;
+                    self.next(board, captures_only, order)
+                }
+                State::GeneratedNonCaptures => None,
+            },
         }
     }
 
-    fn generate_moves<const CAPTURES: bool>(&mut self, board: &Board, tt_move: Option<Move>) {
+    fn generate_moves<const CAPTURES: bool>(
+        &mut self,
+        board: &Board,
+        order: impl Fn(Move) -> Score + Copy,
+    ) {
         self.moves.clear();
         self.index = 0;
         let mask = if CAPTURES { board[!board.active] } else { !board[!board.active] };
-        board.pseudolegal_moves_with(mask, |mov| {
-            self.push_move::<CAPTURES>(board, mov, tt_move);
-        });
-    }
-
-    fn push_move<const CAPTURES: bool>(&mut self, board: &Board, mov: Move, tt_move: Option<Move>) {
-        let mut score = 0;
-        if CAPTURES
-            && let Move::Board { from, to, .. } = mov
-            && board[!board.active].contains(to)
-        {
-            let from_piece = board.pieces.get(from).unwrap();
-            let to_piece = board.pieces.get(to).unwrap();
-            score += piece_value::board(to_piece) - piece_value::board(from_piece);
-        }
-        let mut board = board.clone();
-        board.play(mov);
-        if board.is_check() {
-            score += 50;
-        }
-        if let Move::Board { promoted: true, .. } = mov {
-            score += 50;
-        }
-        if tt_move == Some(mov) {
-            score += 100;
-        }
-
-        self.moves.push((mov, Score(score)));
+        board.pseudolegal_moves_with(mask, |mov| self.moves.push((mov, order(mov))));
     }
 
     fn next_move(&mut self) -> Option<Move> {
