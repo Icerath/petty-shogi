@@ -86,7 +86,7 @@ impl Engine {
         let mut best_line = vec![];
         let mut movelist = MoveList::new();
         while let Some(mov) =
-            movelist.next(board, kind.captures_only(), super::move_ordering::order(board, tt_move))
+            movelist.next(board, kind.captures_only(), tt_move, super::move_ordering::order(board))
         {
             let mut board = board.clone();
             board.play(mov);

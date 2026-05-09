@@ -9,35 +9,45 @@ pub struct MoveList {
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum State {
-    Start,
+    HashMove,
+    HashMoveComplete,
     GeneratedCaptures,
     GeneratedNonCaptures,
 }
 
 impl MoveList {
     pub fn new() -> Self {
-        Self { moves: vec![], index: 0, state: State::Start }
+        Self { moves: vec![], index: 0, state: State::HashMove }
     }
 
     pub fn next(
         &mut self,
         board: &Board,
         captures_only: bool,
+        tt_move: Option<Move>,
         order: impl Fn(Move) -> Score + Copy,
     ) -> Option<Move> {
         match self.next_move() {
             Some(mov) => Some(mov),
             None => match self.state {
-                State::Start => {
-                    self.generate_moves::<true>(board, order);
+                State::HashMove => {
+                    self.state = State::HashMoveComplete;
+                    if let Some(tt_move) = tt_move {
+                        debug_assert!(board.is_legal(tt_move));
+                        return Some(tt_move);
+                    }
+                    self.next(board, captures_only, tt_move, order)
+                }
+                State::HashMoveComplete => {
                     self.state = State::GeneratedCaptures;
-                    self.next(board, captures_only, order)
+                    self.generate_moves::<true>(board, tt_move, order);
+                    self.next(board, captures_only, tt_move, order)
                 }
                 State::GeneratedCaptures if captures_only => None,
                 State::GeneratedCaptures => {
-                    self.generate_moves::<false>(board, order);
                     self.state = State::GeneratedNonCaptures;
-                    self.next(board, captures_only, order)
+                    self.generate_moves::<false>(board, tt_move, order);
+                    self.next(board, captures_only, tt_move, order)
                 }
                 State::GeneratedNonCaptures => None,
             },
@@ -47,12 +57,18 @@ impl MoveList {
     fn generate_moves<const CAPTURES: bool>(
         &mut self,
         board: &Board,
+        tt_move: Option<Move>,
         order: impl Fn(Move) -> Score + Copy,
     ) {
         self.moves.clear();
         self.index = 0;
         let mask = if CAPTURES { board[!board.active] } else { !board[!board.active] };
         board.pseudolegal_moves_with(mask, |mov| self.moves.push((mov, order(mov))));
+        if let Some(tt_move) = tt_move
+            && let Some(index) = self.moves.iter().position(|(mov, _)| *mov == tt_move)
+        {
+            self.moves.swap_remove(index);
+        }
     }
 
     fn next_move(&mut self) -> Option<Move> {

@@ -1,7 +1,7 @@
 use super::{piece_value, score::Score};
 use crate::{Board, Move};
 
-pub fn order(board: &Board, tt_move: Option<Move>) -> impl Fn(Move) -> Score + Copy {
+pub fn order(board: &Board) -> impl Fn(Move) -> Score + Copy {
     move |mov: Move| {
         let mut score = 0;
         if let Move::Board { from, to, .. } = mov
@@ -18,9 +18,6 @@ pub fn order(board: &Board, tt_move: Option<Move>) -> impl Fn(Move) -> Score + C
         }
         if let Move::Board { promoted: true, .. } = mov {
             score += 50;
-        }
-        if tt_move == Some(mov) {
-            score += 100;
         }
         Score(score)
     }
