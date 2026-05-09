@@ -11,20 +11,17 @@ pub use receiver::Receiver;
 use crate::{Bitboard, Board, Move, PieceKind, Side, Square};
 
 impl Board {
-    #[must_use]
-    pub fn has_legal_move(&self, mov: Move) -> bool {
-        self.legal_moves(|legal| {
-            if legal == mov { ControlFlow::Break(()) } else { ControlFlow::Continue(()) }
-        })
-        .is_break()
-    }
-
     fn any_legal_move(&self) -> bool {
         self.legal_moves(|_| ControlFlow::Break(())).is_break()
     }
 
     #[must_use]
     pub fn is_legal(&self, mov: Move) -> bool {
+        self.is_pseudolegal(mov) && self.is_generated_legal(mov)
+    }
+
+    #[must_use]
+    pub(crate) fn is_generated_legal(&self, mov: Move) -> bool {
         let mut board = self.clone();
         board.play(mov);
         board.was_legal(mov)

@@ -80,7 +80,7 @@ impl Engine {
             Position::StartPos => self.position = Board::start_pos(),
         }
         for mov in moves {
-            if self.position.has_legal_move(mov) {
+            if self.position.is_legal(mov) {
                 self.position.play(mov);
             } else {
                 self.recv(Response::Error(format!("cannot play {mov}")));

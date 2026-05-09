@@ -85,6 +85,27 @@ macro_rules! recv_int {
 }
 recv_int!(u16, u32, u64, u128, i16, i32, i64, i128);
 
+impl Receiver for Bitboard {
+    type Output = Self;
+    type Result = ();
+
+    fn recv_move(&mut self, mov: Move) -> Self::Result {
+        self.insert(mov.to());
+    }
+
+    fn recv(&mut self, _: Square, squares: Bitboard, _: bool) -> Self::Result {
+        *self |= squares;
+    }
+
+    fn recv_drop(&mut self, _: PieceKind, squares: Bitboard) -> Self::Result {
+        *self |= squares;
+    }
+
+    fn finish(self, (): ()) -> Self {
+        self
+    }
+}
+
 pub struct Legal<'a, R> {
     pub board: &'a Board,
     pub recv: R,

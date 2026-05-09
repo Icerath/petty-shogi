@@ -35,12 +35,107 @@ impl Board {
                 knight_moves,
                 silver_moves,
                 gold_moves,
-                bishop_moves,
-                rook_moves,
+                unpromoted_bishop_moves,
+                promoted_bishop_moves,
+                unpromoted_rook_moves,
+                promoted_rook_moves,
                 drop_moves,
             );
         }
         self.king_moves(mask, r)
+    }
+
+    pub(crate) fn is_pseudolegal(&self, mov: Move) -> bool {
+        match mov {
+            Move::Board { from, to, promoted } => self.is_pseudolegal_board(from, to, promoted),
+            Move::Drop { piece, to } => self.is_pseudolegal_drop(piece, to),
+        }
+    }
+
+    fn is_pseudolegal_board(&self, from: Square, to: Square, promote: bool) -> bool {
+        let Some(from_piece) = self.pieces.get(from) else {
+            return false;
+        };
+        if from_piece.side() != self.active {
+            return false;
+        }
+        let mask = !self[self.active];
+        let mut bb = Bitboard::EMPTY;
+
+        if promote && !from.is_promotion_zone(self.active) && !to.is_promotion_zone(self.active) {
+            return false;
+        }
+
+        if promote && let PieceKind::Gold | PieceKind::King = from_piece.kind() {
+            return false;
+        }
+
+        if promote && from_piece.promoted() {
+            return false;
+        }
+
+        if !promote {
+            if let PieceKind::Pawn | PieceKind::Lance = from_piece.kind()
+                && to.rank() == self.active.end_rank()
+            {
+                return false;
+            }
+            if from_piece.kind() == PieceKind::Knight
+                && (to.rank() == self.active.end_rank()
+                    || to.rank() == self.active.end_rank().back(self.active).unwrap())
+            {
+                return false;
+            }
+        }
+
+        match (from_piece.kind(), from_piece.promoted()) {
+            (PieceKind::Pawn, false) => {
+                if let Some(forward) = from.forward(self.active) {
+                    bb.insert(forward);
+                }
+            }
+            (PieceKind::Lance, false) => lance(self, mask, from, &mut bb),
+            (PieceKind::Knight, false) => knight(self, mask, from, &mut bb),
+            (PieceKind::Silver, false) => silver(self, mask, from, &mut bb),
+            (PieceKind::Gold, _) => gold(self, mask, from, &mut bb),
+            (PieceKind::Bishop, false) => bishop::<false, _>(self, mask, from, &mut bb),
+            (PieceKind::Rook, false) => rook::<false, _>(self, mask, from, &mut bb),
+            (PieceKind::King, _) => king(mask, from, &mut bb),
+            (PieceKind::Pawn | PieceKind::Lance | PieceKind::Knight | PieceKind::Silver, true) => {
+                gold(self, mask, from, &mut bb);
+            }
+            (PieceKind::Bishop, true) => bishop::<true, _>(self, mask, from, &mut bb),
+            (PieceKind::Rook, true) => rook::<true, _>(self, mask, from, &mut bb),
+        }
+        bb.contains(to)
+    }
+
+    fn is_pseudolegal_drop(&self, piece: PieceKind, to: Square) -> bool {
+        if self.hands[self.active][piece] == 0 {
+            return false;
+        }
+        let empty_squares = !self.pieces.all();
+        if !empty_squares.contains(to) {
+            return false;
+        }
+        if let PieceKind::Pawn | PieceKind::Lance | PieceKind::Knight = piece
+            && to.rank() == self.active.end_rank()
+        {
+            return false;
+        }
+
+        if piece == PieceKind::Knight
+            && to.rank() == self.active.end_rank().back(self.active).unwrap()
+        {
+            return false;
+        }
+
+        if piece == PieceKind::Pawn
+            && !(self[PieceKind::Pawn] & self[self.active] & to.file().mask()).is_empty()
+        {
+            return false;
+        }
+        true
     }
 
     fn drop_moves<R: Receiver>(&self, mask: Bitboard, r: &mut R) -> R::Result {
@@ -174,18 +269,22 @@ impl Board {
         (self.gold_move_pieces() & self[self.active]).for_each(|sq| gold(self, mask, sq, r))
     }
 
-    fn bishop_moves<R: Receiver>(&self, mask: Bitboard, r: &mut R) -> R::Result {
-        for sq in self[PieceKind::Bishop] & self[self.active] & !self.pieces.promoted {
-            ptry!(bishop::<false, _>(self, mask, sq, r));
-        }
+    fn unpromoted_bishop_moves<R: Receiver>(&self, mask: Bitboard, r: &mut R) -> R::Result {
+        (self[PieceKind::Bishop] & self[self.active] & !self.pieces.promoted)
+            .for_each(|sq| bishop::<false, _>(self, mask, sq, r))
+    }
+
+    fn promoted_bishop_moves<R: Receiver>(&self, mask: Bitboard, r: &mut R) -> R::Result {
         (self[PieceKind::Bishop] & self[self.active] & self.pieces.promoted)
             .for_each(|sq| bishop::<true, _>(self, mask, sq, r))
     }
 
-    fn rook_moves<R: Receiver>(&self, mask: Bitboard, r: &mut R) -> R::Result {
-        for sq in self[PieceKind::Rook] & self[self.active] & !self.pieces.promoted {
-            ptry!(rook::<false, _>(self, mask, sq, r));
-        }
+    fn unpromoted_rook_moves<R: Receiver>(&self, mask: Bitboard, r: &mut R) -> R::Result {
+        (self[PieceKind::Rook] & self[self.active] & !self.pieces.promoted)
+            .for_each(|sq| rook::<false, _>(self, mask, sq, r))
+    }
+
+    fn promoted_rook_moves<R: Receiver>(&self, mask: Bitboard, r: &mut R) -> R::Result {
         (self[PieceKind::Rook] & self[self.active] & self.pieces.promoted)
             .for_each(|sq| rook::<true, _>(self, mask, sq, r))
     }
@@ -401,4 +500,24 @@ const fn compute_king() -> [Bitboard; Square::LEN] {
         index += 1;
     }
     moves
+}
+
+#[test]
+fn test_is_legal() {
+    use std::ops::ControlFlow;
+    let board = Board::start_pos();
+    for from in Square::ALL {
+        for to in Square::ALL {
+            for promote in [false, true] {
+                let mov = Move::Board { from, to, promoted: promote };
+                let is_legal = board.is_legal(mov);
+                let has_legal = board
+                    .legal_moves(|m| {
+                        if m == mov { ControlFlow::Break(()) } else { ControlFlow::Continue(()) }
+                    })
+                    .is_break();
+                assert_eq!(is_legal, has_legal, "{mov}");
+            }
+        }
+    }
 }
