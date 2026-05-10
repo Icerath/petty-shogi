@@ -131,7 +131,11 @@ impl Board {
         }
 
         if piece == PieceKind::Pawn
-            && !(self[PieceKind::Pawn] & self[self.active] & to.file().mask()).is_empty()
+            && !(self[PieceKind::Pawn]
+                & !self.pieces.promoted
+                & self[self.active]
+                & to.file().mask())
+            .is_empty()
         {
             return false;
         }
