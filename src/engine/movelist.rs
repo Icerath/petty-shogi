@@ -28,43 +28,43 @@ impl MoveList {
         killer: Option<Move>,
         order: impl Fn(Move) -> Score + Copy,
     ) -> Option<Move> {
-        match self.next_move() {
-            Some(mov) => Some(mov),
-            None => match self.state {
+        if let Some(mov) = self.next_move() {
+            return Some(mov);
+        }
+        loop {
+            if let Some(mov) = self.next_move() {
+                return Some(mov);
+            }
+            match self.state {
                 State::HashMove { complete: false } => {
                     self.state = State::HashMove { complete: true };
                     if let Some(tt_move) = tt_move {
                         debug_assert!(board.is_legal(tt_move));
-                        return Some(tt_move);
+                        break Some(tt_move);
                     }
-                    self.next(board, captures_only, tt_move, killer, order)
                 }
                 State::HashMove { complete: true } => {
                     self.state = State::GeneratedCaptures;
                     self.generate_moves::<true>(board, tt_move, killer, order);
-                    self.next(board, captures_only, tt_move, killer, order)
                 }
-                State::GeneratedCaptures if captures_only => None,
+                State::GeneratedCaptures if captures_only => break None,
                 State::GeneratedCaptures => {
                     self.state = State::Killer { complete: false };
-                    self.next(board, captures_only, tt_move, killer, order)
                 }
                 State::Killer { complete: false } => {
                     self.state = State::Killer { complete: true };
                     if let Some(killer) = killer
                         && board.is_legal(killer)
                     {
-                        return Some(killer);
+                        break Some(killer);
                     }
-                    self.next(board, captures_only, tt_move, killer, order)
                 }
                 State::Killer { complete: true } => {
                     self.state = State::GeneratedNonCaptures;
                     self.generate_moves::<false>(board, tt_move, killer, order);
-                    self.next(board, captures_only, tt_move, killer, order)
                 }
-                State::GeneratedNonCaptures => None,
-            },
+                State::GeneratedNonCaptures => break None,
+            }
         }
     }
 
