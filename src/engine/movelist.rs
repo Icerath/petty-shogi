@@ -3,7 +3,6 @@ use crate::{Board, Move};
 
 pub struct MoveList {
     moves: Vec<(Move, Score)>,
-    index: usize,
     state: State,
 }
 
@@ -17,7 +16,7 @@ enum State {
 
 impl MoveList {
     pub fn new() -> Self {
-        Self { moves: vec![], index: 0, state: State::HashMove { complete: false } }
+        Self { moves: vec![], state: State::HashMove { complete: false } }
     }
 
     pub fn next(
@@ -76,8 +75,6 @@ impl MoveList {
         killer: Option<Move>,
         order: impl Fn(Move) -> Score + Copy,
     ) {
-        self.moves.clear();
-        self.index = 0;
         let mask = if CAPTURES { board[!board.active] } else { !board[!board.active] };
         board.pseudolegal_moves_with(mask, |mov| self.moves.push((mov, order(mov))));
         if let Some(tt_move) = tt_move {
@@ -94,18 +91,17 @@ impl MoveList {
     }
 
     fn next_move(&mut self) -> Option<Move> {
-        if self.index >= self.moves.len() {
+        if self.moves.is_empty() {
             return None;
         }
-        let mut best = self.index;
-        for index in (self.index + 1)..self.moves.len() {
+        let mut best = 0;
+        for index in 1..self.moves.len() {
             if self.moves[index].1 > self.moves[best].1 {
                 best = index;
             }
         }
-        self.moves.swap(self.index, best);
-        let mov = self.moves[self.index].0;
-        self.index += 1;
+        let mov = self.moves[best].0;
+        self.moves.swap_remove(best);
         Some(mov)
     }
 }
