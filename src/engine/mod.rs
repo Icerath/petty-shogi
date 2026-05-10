@@ -155,6 +155,10 @@ impl Engine {
                     .score(score)
                     .line(line.clone()),
             ));
+            self.recv(Response::Verbose(format!(
+                "fail high: {:.1}%",
+                (self.search.fail_high * 1000 / self.search.fail_high_test) as f64 / 10.0
+            )));
             complete_line = line;
             if score.mate().is_some() {
                 break;

@@ -4,15 +4,19 @@ use petty_shogi::{Engine, command::Command, response::Response};
 #[derive(Parser)]
 pub struct Cli {
     #[arg(short, long)]
-    pub run: Option<String>,
+    run: Option<String>,
+    #[arg(short, long)]
+    verbose: bool,
 }
 
 fn main() {
     let cli = Cli::parse();
     let mut engine = Engine::default();
-    engine.set_recv(|response| match response {
+    engine.set_recv(move |response| match response {
         Response::Error(error) => eprintln!("[ERROR] {error}"),
         Response::Misc(message) => eprintln!("{message}"),
+        Response::Verbose(message) if cli.verbose => eprintln!("{message}"),
+        Response::Verbose(..) => {}
         _ => println!("{response}"),
     });
     if let Some(run) = &cli.run {

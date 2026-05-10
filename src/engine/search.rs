@@ -9,10 +9,16 @@ pub struct Search {
     pub nodes: u64,
     pub depth_from_root: u32,
     pub max_seldepth: u32,
+    pub killer: Vec<Option<Move>>,
+    pub fail_high: u64,
+    pub fail_high_test: u64,
 }
 
 impl Engine {
     pub fn search_root(&mut self, board: &mut Board, depth: u32, line: &mut Vec<Move>) -> Score {
+        self.search.killer.clear();
+        self.search.killer.extend([None; 64]);
+
         self.search(-Score::MAX, Score::MAX, board, depth, &mut NormalSearch { line })
     }
 
@@ -85,9 +91,15 @@ impl Engine {
         let mut move_count = 0;
         let mut best_line = vec![];
         let mut movelist = MoveList::new();
-        while let Some(mov) =
-            movelist.next(board, kind.captures_only(), tt_move, super::move_ordering::order(board))
-        {
+        while let Some(mov) = movelist.next(
+            board,
+            kind.captures_only(),
+            tt_move,
+            (!kind.captures_only())
+                .then(|| self.search.killer[self.search.depth_from_root as usize])
+                .flatten(),
+            super::move_ordering::order(board),
+        ) {
             let mut board = board.clone();
             board.play(mov);
             if !board.was_legal(mov) {
@@ -137,7 +149,12 @@ impl Engine {
 
             alpha = alpha.max(best_score);
 
+            self.search.fail_high_test += 1;
             if alpha >= beta {
+                self.search.fail_high += 1;
+                if !kind.captures_only() {
+                    self.search.killer[self.search.depth_from_root as usize] = Some(mov);
+                }
                 break;
             }
         }

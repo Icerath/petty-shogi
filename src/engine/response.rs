@@ -14,6 +14,8 @@ pub enum Response {
     Error(String),
     // not part of USI, should be printed to stderr instead of stdout
     Misc(String),
+    // not part of USI, should be printed to stderr instead of stdout
+    Verbose(String),
 }
 
 #[derive(Debug)]
@@ -64,6 +66,7 @@ impl fmt::Display for Response {
             Self::Info(ref info) => write!(f, "info {info}"),
             Self::Misc(ref string) => write!(f, "{string}"),
             Self::Error(ref error) => write!(f, "{error}"),
+            Self::Verbose(..) => Ok(()),
         }
     }
 }

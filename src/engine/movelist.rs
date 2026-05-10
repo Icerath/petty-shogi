@@ -9,15 +9,15 @@ pub struct MoveList {
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum State {
-    HashMove,
-    HashMoveComplete,
+    HashMove { complete: bool },
     GeneratedCaptures,
+    Killer { complete: bool },
     GeneratedNonCaptures,
 }
 
 impl MoveList {
     pub fn new() -> Self {
-        Self { moves: vec![], index: 0, state: State::HashMove }
+        Self { moves: vec![], index: 0, state: State::HashMove { complete: false } }
     }
 
     pub fn next(
@@ -25,29 +25,43 @@ impl MoveList {
         board: &Board,
         captures_only: bool,
         tt_move: Option<Move>,
+        killer: Option<Move>,
         order: impl Fn(Move) -> Score + Copy,
     ) -> Option<Move> {
         match self.next_move() {
             Some(mov) => Some(mov),
             None => match self.state {
-                State::HashMove => {
-                    self.state = State::HashMoveComplete;
+                State::HashMove { complete: false } => {
+                    self.state = State::HashMove { complete: true };
                     if let Some(tt_move) = tt_move {
                         debug_assert!(board.is_legal(tt_move));
                         return Some(tt_move);
                     }
-                    self.next(board, captures_only, tt_move, order)
+                    self.next(board, captures_only, tt_move, killer, order)
                 }
-                State::HashMoveComplete => {
+                State::HashMove { complete: true } => {
                     self.state = State::GeneratedCaptures;
-                    self.generate_moves::<true>(board, tt_move, order);
-                    self.next(board, captures_only, tt_move, order)
+                    self.generate_moves::<true>(board, tt_move, killer, order);
+                    self.next(board, captures_only, tt_move, killer, order)
                 }
                 State::GeneratedCaptures if captures_only => None,
                 State::GeneratedCaptures => {
+                    self.state = State::Killer { complete: false };
+                    self.next(board, captures_only, tt_move, killer, order)
+                }
+                State::Killer { complete: false } => {
+                    self.state = State::Killer { complete: true };
+                    if let Some(killer) = killer
+                        && board.is_legal(killer)
+                    {
+                        return Some(killer);
+                    }
+                    self.next(board, captures_only, tt_move, killer, order)
+                }
+                State::Killer { complete: true } => {
                     self.state = State::GeneratedNonCaptures;
-                    self.generate_moves::<false>(board, tt_move, order);
-                    self.next(board, captures_only, tt_move, order)
+                    self.generate_moves::<false>(board, tt_move, killer, order);
+                    self.next(board, captures_only, tt_move, killer, order)
                 }
                 State::GeneratedNonCaptures => None,
             },
@@ -58,17 +72,24 @@ impl MoveList {
         &mut self,
         board: &Board,
         tt_move: Option<Move>,
+        killer: Option<Move>,
         order: impl Fn(Move) -> Score + Copy,
     ) {
         self.moves.clear();
         self.index = 0;
         let mask = if CAPTURES { board[!board.active] } else { !board[!board.active] };
         board.pseudolegal_moves_with(mask, |mov| self.moves.push((mov, order(mov))));
-        if let Some(tt_move) = tt_move
-            && let Some(index) = self.moves.iter().position(|(mov, _)| *mov == tt_move)
-        {
-            self.moves.swap_remove(index);
+        if let Some(tt_move) = tt_move {
+            self.remove_move(tt_move);
         }
+        if let Some(killer) = killer {
+            self.remove_move(killer);
+        }
+    }
+
+    fn remove_move(&mut self, mov: Move) {
+        let Some(index) = self.moves.iter().position(|(m, _)| *m == mov) else { return };
+        self.moves.swap_remove(index);
     }
 
     fn next_move(&mut self) -> Option<Move> {
