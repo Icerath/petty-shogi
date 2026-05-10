@@ -38,8 +38,9 @@ impl MoveList {
             match self.state {
                 State::HashMove { complete: false } => {
                     self.state = State::HashMove { complete: true };
-                    if let Some(tt_move) = tt_move {
-                        debug_assert!(board.is_legal(tt_move));
+                    if let Some(tt_move) = tt_move
+                        && board.is_legal(tt_move)
+                    {
                         break Some(tt_move);
                     }
                 }
