@@ -258,6 +258,7 @@ impl Extend<Square> for Bitboard {
     }
 }
 
+#[doc(hidden)]
 #[macro_export]
 macro_rules! _bit {
     (0) => {
