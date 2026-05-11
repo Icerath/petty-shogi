@@ -48,8 +48,8 @@ impl<S: BoardState> Board<S> {
         self.state.set_hand_size(
             self.active,
             piece,
-            self.hands[self.active][piece] - 1,
             self.hands[self.active][piece],
+            self.hands[self.active][piece] - 1,
         );
         self.insert_piece(Piece::new(self.active, piece, false), to);
         self.hands[self.active][piece] -= 1;
