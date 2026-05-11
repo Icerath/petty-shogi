@@ -32,7 +32,7 @@ pub fn hand(piece: PieceKind) -> i32 {
 }
 
 #[expect(clippy::cast_possible_truncation)]
-static PSQT: [[i32; Square::LEN]; Piece::LEN] =
+pub static PSQT: [[i32; Square::LEN]; Piece::LEN] =
     konst::array::from_fn!(|i| psqt(Piece::from_int(i as u8).unwrap()));
 
 const fn psqt(piece: Piece) -> [i32; Square::LEN] {
