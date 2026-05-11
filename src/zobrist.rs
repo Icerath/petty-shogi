@@ -81,7 +81,7 @@ impl Table {
             side_to_move: rng.next(),
             board_pieces: konst::array::from_fn!(|_| konst::array::from_fn!(|_| rng.next())),
             hand_pieces: konst::array::from_fn!(|_| konst::array::from_fn!(
-                |_| konst::array::from_fn!(|_| rng.next())
+                |_| konst::array::from_fn!(|count| if count == 0 { 0 } else { rng.next() })
             )),
         }
     }
