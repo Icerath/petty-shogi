@@ -152,7 +152,7 @@ impl Engine {
             self.search.fail_high_test += 1;
             if alpha >= beta {
                 self.search.fail_high += 1;
-                if !kind.captures_only() {
+                if !kind.captures_only() && !board.pieces.contains(mov.to()) {
                     self.search.killer[self.search.depth_from_root as usize] = Some(mov);
                 }
                 break;
