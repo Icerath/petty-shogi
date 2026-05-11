@@ -43,6 +43,8 @@ impl Engine {
             return Score(0);
         }
 
+        let alpha_orig = alpha;
+
         let mut tt_move = None;
 
         if !kind.captures_only()
@@ -164,12 +166,12 @@ impl Engine {
         }
 
         if !kind.captures_only() {
-            let nodetype = if alpha >= beta {
-                Nodetype::Beta
-            } else if alpha == best_score {
-                Nodetype::Exact
-            } else {
+            let nodetype = if best_score <= alpha_orig {
                 Nodetype::Alpha
+            } else if best_score >= beta {
+                Nodetype::Beta
+            } else {
+                Nodetype::Exact
             };
             self.ttable.insert(board.state.zobrist, depth, best_score, best_move, nodetype);
         }
