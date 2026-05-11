@@ -18,11 +18,12 @@ pub fn order(board: &Board) -> impl Fn(Move) -> Score + Copy {
                 score += PSQT[piece][to] - PSQT[piece][from];
             }
         }
-
-        let mut board = board.clone();
-        board.play(mov);
-        if board.is_check() {
-            score += 50;
+        {
+            let mut board = board.without_state().clone();
+            board.play(mov);
+            if board.is_check() {
+                score += 50;
+            }
         }
         if let Move::Board { promoted: true, .. } = mov {
             score += 50;
