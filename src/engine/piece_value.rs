@@ -1,7 +1,7 @@
-use crate::{Piece, PieceKind};
+use crate::{Piece, PieceKind, Side, Square, board_state::BoardState};
 
 #[expect(clippy::match_same_arms)]
-pub fn board(piece: Piece) -> i32 {
+pub const fn board(piece: Piece) -> i32 {
     match (piece.kind(), piece.promoted()) {
         (PieceKind::Pawn, false) => 100,
         (PieceKind::Pawn, true) => 600,
@@ -28,5 +28,57 @@ pub fn hand(piece: PieceKind) -> i32 {
         PieceKind::Bishop => 720,
         PieceKind::Rook => 820,
         PieceKind::King => 0,
+    }
+}
+
+#[expect(clippy::cast_possible_truncation)]
+static PSQT: [[i32; Square::LEN]; Piece::LEN] =
+    konst::array::from_fn!(|i| psqt(Piece::from_int(i as u8).unwrap()));
+
+const fn psqt(piece: Piece) -> [i32; Square::LEN] {
+    #[rustfmt::skip]
+    let table = match (piece.kind(), piece.promoted()) {
+        (PieceKind::King, _) => [
+             0,  0,  0,  0,  0,  0,  0,  0,  0,
+             0,  0,  0,  0,  0,  0,  0,  0,  0,
+             0,  0,  0,  0,  0,  0,  0,  0,  0,
+             0,  0,  0,  0,  0,  0,  0,  0,  0,
+             0,  0,  0,  0,  0,  0,  0,  0,  0,
+             0,  0,  0,  0,  0,  0,  0,  0,  0,
+             0,  0,  0,  0,  0,  0,  0,  0,  0,
+            20, 20, 10,  5,  0,  5, 10, 20, 20,
+            30, 20, 15, 10,  0, 10, 15, 20, 30,
+        ],
+        _ => [0; 81],
+    };
+    let table = konst::array::from_fn!(|i| table[i] + board(piece));
+
+    match piece.side() {
+        Side::Sente => table,
+        Side::Gote => konst::array::from_fn!(|i| -table[80 - i]),
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct PieceValues(pub i32);
+
+impl BoardState for PieceValues {
+    const EMPTY: Self = Self(0);
+
+    fn set_hand_size(&mut self, side: Side, piece: PieceKind, old: u8, new: u8) {
+        let diff = i32::from(new) - i32::from(old);
+        let score = hand(piece) * diff;
+        match side {
+            Side::Sente => self.0 += score,
+            Side::Gote => self.0 -= score,
+        }
+    }
+
+    fn set_piece_at(&mut self, piece: Piece, sq: Square, set: bool) {
+        if set {
+            self.0 += PSQT[piece][sq];
+        } else {
+            self.0 -= PSQT[piece][sq];
+        }
     }
 }

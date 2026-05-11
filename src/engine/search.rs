@@ -1,6 +1,6 @@
-use super::{Board, Engine, Score, piece_value};
+use super::{Board, Engine, Score};
 use crate::{
-    Move, Piece, PieceKind, Side,
+    Move, Side,
     engine::{movelist::MoveList, transposition_table::Nodetype},
 };
 
@@ -193,17 +193,6 @@ impl Engine {
         let mut sum_both = 0;
         for side in Side::ALL {
             let mut sum = 0;
-            for promoted in [false, true] {
-                for kind in PieceKind::ALL {
-                    let mut mask = board[kind] & board[side];
-                    if promoted {
-                        mask &= board.pieces.promoted;
-                    }
-                    sum += i32::from(mask.count())
-                        * piece_value::board(Piece::new(side, kind, promoted));
-                    sum += i32::from(board.hands[side][kind]) * piece_value::hand(kind);
-                }
-            }
             {
                 let mut board = board.without_state().clone();
                 board.active = side;
@@ -211,7 +200,7 @@ impl Engine {
             }
             sum_both += if side == Side::Sente { sum } else { -sum };
         }
-        sum_both
+        board.state.piece_values.0 + sum_both
     }
 }
 

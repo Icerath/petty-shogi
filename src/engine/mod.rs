@@ -15,6 +15,7 @@ use std::{
 };
 
 use command::{Command, GoCommand, Position};
+use piece_value::PieceValues;
 use response::{BestMove, Info, Response};
 use score::Score;
 use search::Search;
@@ -206,24 +207,29 @@ pub type Board<S = EngineBoardState> = crate::Board<S>;
 #[derive(Clone)]
 pub struct EngineBoardState {
     zobrist: Zobrist,
+    piece_values: PieceValues,
 }
 
 impl BoardState for EngineBoardState {
-    const EMPTY: Self = Self { zobrist: Zobrist::EMPTY };
+    const EMPTY: Self = Self { zobrist: Zobrist::EMPTY, piece_values: PieceValues::EMPTY };
 
     fn debug(&self, debug_struct: &mut core::fmt::DebugStruct) -> core::fmt::Result {
-        self.zobrist.debug(debug_struct)
+        self.zobrist.debug(debug_struct)?;
+        self.piece_values.debug(debug_struct)
     }
 
     fn set_hand_size(&mut self, side: crate::Side, piece: crate::PieceKind, old: u8, new: u8) {
         self.zobrist.set_hand_size(side, piece, old, new);
+        self.piece_values.set_hand_size(side, piece, old, new);
     }
 
     fn set_piece_at(&mut self, piece: crate::Piece, sq: crate::Square, set: bool) {
         self.zobrist.set_piece_at(piece, sq, set);
+        self.piece_values.set_piece_at(piece, sq, set);
     }
 
     fn set_side_to(&mut self, to: crate::Side) {
         self.zobrist.set_side_to(to);
+        self.piece_values.set_side_to(to);
     }
 }
