@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::{Piece, PieceKind, Side, Square};
+use crate::{Piece, PieceKind, Side, Square, board_state::BoardState};
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Zobrist(pub u64);
@@ -19,6 +19,28 @@ impl Zobrist {
 
     pub fn xor_hand_piece(&mut self, side: Side, kind: PieceKind, count: u8) {
         self.0 ^= TABLE.hand_pieces[side][kind][count as usize];
+    }
+}
+
+impl BoardState for Zobrist {
+    const EMPTY: Self = Self::EMPTY;
+
+    fn set_side_to(&mut self, _side: Side) {
+        self.xor_side_to_move();
+    }
+
+    fn set_hand_size(&mut self, side: Side, piece: PieceKind, old: u8, new: u8) {
+        self.xor_hand_piece(side, piece, old);
+        self.xor_hand_piece(side, piece, new);
+    }
+
+    fn set_piece_at(&mut self, piece: Piece, sq: Square, _set: bool) {
+        self.xor_board_piece(sq, piece);
+    }
+
+    fn debug(&self, debug_struct: &mut core::fmt::DebugStruct) -> core::fmt::Result {
+        debug_struct.field("hash", &self.0);
+        Ok(())
     }
 }
 
@@ -74,10 +96,10 @@ mod tests {
 
     #[test]
     fn test_zobrist_basics() {
-        let board = Board::start_pos();
-        let mut zobrists: HashMap<Zobrist, Board> = HashMap::new();
+        let board = Board::<Zobrist>::start_pos();
+        let mut zobrists: HashMap<Zobrist, Board<Zobrist>> = HashMap::new();
         _ = board.try_perft(5, &mut |board| {
-            if let Some(previous) = zobrists.insert(board.zobrist, board.clone()) {
+            if let Some(previous) = zobrists.insert(board.state, board.clone()) {
                 assert!(
                     board.pieces == previous.pieces
                         && board.active == previous.active

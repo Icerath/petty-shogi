@@ -21,7 +21,7 @@ use search::Search;
 use stop::Stop;
 use transposition_table::TTable;
 
-use crate::{Board, Move};
+use crate::{Move, board_state::BoardState, zobrist::Zobrist};
 
 pub struct Engine {
     position: Board,
@@ -184,7 +184,7 @@ impl Engine {
         let result = self.position.legal_moves(|mov| {
             let mut board = self.position.clone();
             board.play(mov);
-            let positions = board.try_perft(depth - 1, &mut |_| stop.is_stop())?;
+            let positions = board.without_state().try_perft(depth - 1, &mut |_| stop.is_stop())?;
             self.recv(Response::Misc(format!("{mov}: {positions}")));
             sum += positions;
             ControlFlow::Continue(())
@@ -198,5 +198,32 @@ impl Engine {
         if let Some(recv) = &self.recv {
             recv(response);
         }
+    }
+}
+
+pub type Board<S = EngineBoardState> = crate::Board<S>;
+
+#[derive(Clone)]
+pub struct EngineBoardState {
+    zobrist: Zobrist,
+}
+
+impl BoardState for EngineBoardState {
+    const EMPTY: Self = Self { zobrist: Zobrist::EMPTY };
+
+    fn debug(&self, debug_struct: &mut core::fmt::DebugStruct) -> core::fmt::Result {
+        self.zobrist.debug(debug_struct)
+    }
+
+    fn set_hand_size(&mut self, side: crate::Side, piece: crate::PieceKind, old: u8, new: u8) {
+        self.zobrist.set_hand_size(side, piece, old, new);
+    }
+
+    fn set_piece_at(&mut self, piece: crate::Piece, sq: crate::Square, set: bool) {
+        self.zobrist.set_piece_at(piece, sq, set);
+    }
+
+    fn set_side_to(&mut self, to: crate::Side) {
+        self.zobrist.set_side_to(to);
     }
 }

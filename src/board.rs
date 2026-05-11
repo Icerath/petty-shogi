@@ -3,31 +3,36 @@ use std::{
     ops::{Index, IndexMut},
 };
 
-use crate::{Bitboard, File, Move, Piece, PieceKind, Rank, Side, Square, zobrist::Zobrist};
+use crate::{Bitboard, File, Move, Piece, PieceKind, Rank, Side, Square, board_state::BoardState};
 
 pub type Hand = [u8; PieceKind::LEN];
 
+#[repr(C)]
 #[derive(Clone, PartialEq, Eq)]
-pub struct Board {
+pub struct Board<S: BoardState = ()> {
     pub pieces: Pieces,
     pub hands: [Hand; 2],
     pub active: Side,
     pub move_counter: u32,
-    pub zobrist: Zobrist,
+    pub state: S,
 }
 
-impl Board {
+impl<S: BoardState> Board<S> {
     pub const EMPTY: Self = Self {
         pieces: Pieces::EMPTY,
         hands: [[0; PieceKind::LEN]; 2],
         active: Side::Sente,
         move_counter: 0,
-        zobrist: Zobrist::EMPTY,
+        state: S::EMPTY,
     };
+
+    pub fn without_state(&self) -> &Board {
+        unsafe { &*std::ptr::from_ref(self).cast::<Board>() }
+    }
 
     pub fn switch_side(&mut self) {
         self.active = !self.active;
-        self.zobrist.xor_side_to_move();
+        self.state.set_side_to(self.active);
     }
 
     pub fn play(&mut self, mov: Move) {
@@ -40,9 +45,14 @@ impl Board {
     }
 
     fn drop_move(&mut self, piece: PieceKind, to: Square) {
-        self.zobrist.xor_hand_piece(self.active, piece, self.hands[self.active][piece]);
-        self.hands[self.active][piece] -= 1;
+        self.state.set_hand_size(
+            self.active,
+            piece,
+            self.hands[self.active][piece] - 1,
+            self.hands[self.active][piece],
+        );
         self.insert_piece(Piece::new(self.active, piece, false), to);
+        self.hands[self.active][piece] -= 1;
     }
 
     fn play_move(&mut self, from: Square, to: Square, promoted: bool) {
@@ -54,11 +64,11 @@ impl Board {
         debug_assert_eq!(from_piece.side(), self.active);
 
         if let Some(piece) = self.pieces.get(to) {
-            // debug_assert!(piece.kind() != PieceKind::King);
-            self.zobrist.xor_hand_piece(
+            self.state.set_hand_size(
                 self.active,
                 piece.kind(),
                 self.hands[self.active][piece.kind()],
+                self.hands[self.active][piece.kind()] + 1,
             );
             self.hands[self.active][piece.kind()] += 1;
             self.remove_piece(piece, to);
@@ -75,7 +85,7 @@ impl Board {
         self[piece.side()].remove(sq);
         self[piece.kind()].remove(sq);
         self.pieces.promoted.remove(sq);
-        self.zobrist.xor_board_piece(sq, piece);
+        self.state.set_piece_at(piece, sq, false);
     }
 
     pub fn insert_piece(&mut self, piece: Piece, sq: Square) {
@@ -84,7 +94,7 @@ impl Board {
         if piece.promoted() {
             self.pieces.promoted.insert(sq);
         }
-        self.zobrist.xor_board_piece(sq, piece);
+        self.state.set_piece_at(piece, sq, true);
     }
 }
 
@@ -133,7 +143,7 @@ impl Pieces {
     }
 }
 
-impl Index<PieceKind> for Board {
+impl<S: BoardState> Index<PieceKind> for Board<S> {
     type Output = Bitboard;
 
     fn index(&self, index: PieceKind) -> &Self::Output {
@@ -141,13 +151,13 @@ impl Index<PieceKind> for Board {
     }
 }
 
-impl IndexMut<PieceKind> for Board {
+impl<S: BoardState> IndexMut<PieceKind> for Board<S> {
     fn index_mut(&mut self, index: PieceKind) -> &mut Self::Output {
         &mut self.pieces.pieces[index]
     }
 }
 
-impl Index<Side> for Board {
+impl<S: BoardState> Index<Side> for Board<S> {
     type Output = Bitboard;
 
     fn index(&self, index: Side) -> &Self::Output {
@@ -155,22 +165,22 @@ impl Index<Side> for Board {
     }
 }
 
-impl IndexMut<Side> for Board {
+impl<S: BoardState> IndexMut<Side> for Board<S> {
     fn index_mut(&mut self, index: Side) -> &mut Self::Output {
         &mut self.pieces.sides[index]
     }
 }
 
-impl fmt::Debug for Board {
+impl<S: BoardState> fmt::Debug for Board<S> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Board")
-            .field("sfen", &self.to_sfen())
-            .field("hash", &self.zobrist)
-            .finish_non_exhaustive()
+        let mut debug_struct = f.debug_struct("Board");
+        debug_struct.field("sfen", &self.to_sfen());
+        self.state.debug(&mut debug_struct)?;
+        debug_struct.finish_non_exhaustive()
     }
 }
 
-impl fmt::Display for Board {
+impl<S: BoardState> fmt::Display for Board<S> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut out = String::new();
         out.push_str("  9   8   7   6   5   4   3   2   1\n");
@@ -194,7 +204,7 @@ impl fmt::Display for Board {
 }
 
 #[cfg(feature = "serde")]
-impl serde::Serialize for Board {
+impl<S> serde::Serialize for Board<S> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
@@ -204,7 +214,7 @@ impl serde::Serialize for Board {
 }
 
 #[cfg(feature = "serde")]
-impl<'de> serde::Deserialize<'de> for Board {
+impl<'de, S: BoardState> serde::Deserialize<'de> for Board<S> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,

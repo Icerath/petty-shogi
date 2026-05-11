@@ -509,7 +509,7 @@ const fn compute_king() -> [Bitboard; Square::LEN] {
 #[test]
 fn test_is_legal() {
     use std::{ops::ControlFlow, str::FromStr};
-    let board = Board::start_pos();
+    let board = Board::<()>::start_pos();
     for from in Square::ALL {
         for to in Square::ALL {
             for promote in [false, true] {
@@ -525,7 +525,7 @@ fn test_is_legal() {
         }
     }
     assert!(
-        Board::from_sfen(
+        Board::<()>::from_sfen(
             "ln3r1n1/2s3kgl/pppppsbg1/6p1p/3PPS3/1PP3P1P/PGB1SR3/1K4G2/LN3+p1NL w P2p 78"
         )
         .unwrap()

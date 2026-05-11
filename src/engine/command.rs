@@ -91,9 +91,9 @@ impl GoCommand {
 fn parse_position<'a>(mut words: impl Iterator<Item = &'a str>) -> Option<(Position, Vec<Move>)> {
     let position = match words.next()? {
         "startpos" => Position::StartPos,
-        "sfen" => {
-            Position::Sfen(Board::from_split_sfen(words.by_ref().map(str::as_bytes))?.to_sfen())
-        }
+        "sfen" => Position::Sfen(
+            Board::<()>::from_split_sfen(words.by_ref().map(str::as_bytes))?.to_sfen(),
+        ),
         _ => return None,
     };
     let mut moves = vec![];

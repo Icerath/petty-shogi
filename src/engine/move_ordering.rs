@@ -1,5 +1,5 @@
-use super::{piece_value, score::Score};
-use crate::{Board, Move};
+use super::{Board, piece_value, score::Score};
+use crate::Move;
 
 pub fn order(board: &Board) -> impl Fn(Move) -> Score + Copy {
     move |mov: Move| {

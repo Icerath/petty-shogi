@@ -8,21 +8,21 @@ use magic::{bishop_moves, lance_moves, rook_moves};
 use pseudolegal::{GOLD_LUT, KING_LUT, KNIGHT_LUT, SILVER_LUT};
 pub use receiver::Receiver;
 
-use crate::{Bitboard, Board, Move, PieceKind, Side, Square};
+use crate::{Bitboard, Board, Move, PieceKind, Side, Square, board_state::BoardState};
 
-impl Board {
+impl<S: BoardState> Board<S> {
     fn any_legal_move(&self) -> bool {
         self.legal_moves(|_| ControlFlow::Break(())).is_break()
     }
 
     #[must_use]
     pub fn is_legal(&self, mov: Move) -> bool {
-        self.is_pseudolegal(mov) && self.is_generated_legal(mov)
+        self.without_state().is_pseudolegal(mov) && self.is_generated_legal(mov)
     }
 
     #[must_use]
     pub(crate) fn is_generated_legal(&self, mov: Move) -> bool {
-        let mut board = self.clone();
+        let mut board = self.without_state().clone();
         board.play(mov);
         board.was_legal(mov)
     }
@@ -68,7 +68,7 @@ impl Board {
             lance_moves(sq, occupancy, side) & self[PieceKind::Lance] & !self.pieces.promoted,
             KNIGHT_LUT[side][sq] & self[PieceKind::Knight] & !self.pieces.promoted,
             SILVER_LUT[side][sq] & self[PieceKind::Silver] & !self.pieces.promoted,
-            GOLD_LUT[side][sq] & self.gold_move_pieces(),
+            GOLD_LUT[side][sq] & self.without_state().gold_move_pieces(),
             bishop_moves(sq, occupancy) & self[PieceKind::Bishop],
             rook_moves(sq, occupancy) & self[PieceKind::Rook],
             KING_LUT[sq] & (self[PieceKind::King] | ((self[PieceKind::Bishop] | self[PieceKind::Rook]) & self.pieces.promoted)),
@@ -84,11 +84,11 @@ impl Board {
     }
 
     pub fn legal_moves_with<R: Receiver>(&self, mask: Bitboard, r: R) -> R::Output {
-        self.pseudolegal_moves_with(mask, receiver::Legal { board: self, recv: r })
+        self.pseudolegal_moves_with(mask, receiver::Legal { board: self.without_state(), recv: r })
     }
 
     pub fn legal_moves<R: Receiver>(&self, r: R) -> R::Output {
-        self.pseudolegal_moves(receiver::Legal { board: self, recv: r })
+        self.pseudolegal_moves(receiver::Legal { board: self.without_state(), recv: r })
     }
 
     pub fn pseudolegal_moves<R: Receiver>(&self, r: R) -> R::Output {
@@ -100,7 +100,7 @@ impl Board {
     }
 
     pub fn pseudolegal_moves_all<R: Receiver>(&self, mask: Bitboard, mut r: R) -> R::Output {
-        let result = self.pseudolegal_moves_(&mut r, mask);
+        let result = self.without_state().pseudolegal_moves_(&mut r, mask);
         r.finish(result)
     }
 }

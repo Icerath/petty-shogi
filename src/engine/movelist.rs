@@ -1,5 +1,5 @@
-use super::score::Score;
-use crate::{Board, Move};
+use super::{Board, score::Score};
+use crate::Move;
 
 pub struct MoveList {
     moves: Vec<(Move, Score)>,

@@ -1,8 +1,8 @@
 use std::ops::ControlFlow;
 
-use crate::board::Board;
+use crate::{board::Board, board_state::BoardState};
 
-impl Board {
+impl<S: BoardState + Clone> Board<S> {
     #[expect(clippy::missing_panics_doc)]
     #[must_use]
     pub fn perft(&self, depth: u32) -> u64 {
@@ -12,7 +12,7 @@ impl Board {
     pub fn try_perft(
         &self,
         depth: u32,
-        stop: &mut impl FnMut(&Board) -> bool,
+        stop: &mut impl FnMut(&Self) -> bool,
     ) -> ControlFlow<(), u64> {
         if stop(self) {
             return ControlFlow::Break(());
@@ -42,7 +42,7 @@ mod tests {
     #[test]
     fn start() {
         for (depth, expected) in (1..).zip([30, 900, 25470, 719_731, 19_861_490, 547_581_517]) {
-            assert_eq!(Board::start_pos().perft(depth), expected, "at depth {depth}");
+            assert_eq!(Board::<()>::start_pos().perft(depth), expected, "at depth {depth}");
         }
     }
 }

@@ -1,6 +1,6 @@
-use super::{Engine, Score, piece_value};
+use super::{Board, Engine, Score, piece_value};
 use crate::{
-    Board, Move, Piece, PieceKind, Side,
+    Move, Piece, PieceKind, Side,
     engine::{movelist::MoveList, transposition_table::Nodetype},
 };
 
@@ -47,7 +47,7 @@ impl Engine {
 
         if !kind.captures_only()
             && self.search.depth_from_root > 0
-            && let Some(entry) = self.ttable.get(board.zobrist)
+            && let Some(entry) = self.ttable.get(board.state.zobrist)
         {
             if let Some(score) = entry.score(alpha, beta, depth) {
                 if let (Some(mov), Some(line)) = (entry.mov, kind.line()) {
@@ -171,7 +171,7 @@ impl Engine {
             } else {
                 Nodetype::Alpha
             };
-            self.ttable.insert(board.zobrist, depth, best_score, best_move, nodetype);
+            self.ttable.insert(board.state.zobrist, depth, best_score, best_move, nodetype);
         }
 
         if let Some(parent_line) = kind.line() {
@@ -204,9 +204,11 @@ impl Engine {
                     sum += i32::from(board.hands[side][kind]) * piece_value::hand(kind);
                 }
             }
-            let mut board = board.clone();
-            board.active = side;
-            sum += board.pseudolegal_moves_all(board[side], 0i32) * 5;
+            {
+                let mut board = board.without_state().clone();
+                board.active = side;
+                sum += board.pseudolegal_moves_all(board[side], 0i32) * 5;
+            }
             sum_both += if side == Side::Sente { sum } else { -sum };
         }
         sum_both

@@ -2,11 +2,11 @@
 
 use std::io::Write as _;
 
-use crate::{Board, File, Hand, Piece, PieceKind, Rank, Side, Square};
+use crate::{Board, File, Piece, PieceKind, Rank, Side, Square, board_state::BoardState};
 
 pub const INITIAL_SFEN: &str = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1";
 
-impl Board {
+impl<S: BoardState> Board<S> {
     #[expect(clippy::missing_panics_doc)]
     #[must_use]
     pub fn start_pos() -> Self {
@@ -24,7 +24,7 @@ impl Board {
             b"w" => Side::Gote,
             _ => return None,
         };
-        board.hands = parse_hands(fields.next()?)?;
+        parse_hands(&mut board, fields.next()?)?;
         board.move_counter = fields.next().and_then(atoi::atoi).unwrap_or(0);
         Some(board)
     }
@@ -81,7 +81,7 @@ impl Board {
     }
 }
 
-fn parse_pieces(fen: &[u8]) -> Option<Board> {
+fn parse_pieces<S: BoardState>(fen: &[u8]) -> Option<Board<S>> {
     let mut board = Board::EMPTY;
     let mut rank = 0;
     let mut file = 0;
@@ -124,10 +124,9 @@ fn parse_pieces(fen: &[u8]) -> Option<Board> {
     Some(board)
 }
 
-fn parse_hands(fen: &[u8]) -> Option<[Hand; 2]> {
-    let mut hands = [[0; PieceKind::LEN]; 2];
+fn parse_hands<S: BoardState>(board: &mut Board<S>, fen: &[u8]) -> Option<()> {
     if fen == b"-" {
-        return Some(hands);
+        return Some(());
     }
     let mut fen = fen.iter().copied();
     while let Some(mut c) = fen.next() {
@@ -151,17 +150,18 @@ fn parse_hands(fen: &[u8]) -> Option<[Hand; 2]> {
             };
         };
         let side = if c.is_ascii_uppercase() { Side::Sente } else { Side::Gote };
-        hands[side][kind] = number.unwrap_or(1);
+        board.hands[side][kind] = number.unwrap_or(1);
+        board.state.set_hand_size(side, kind, 0, number.unwrap_or(1));
     }
-    Some(hands)
+    Some(())
 }
 
 #[test]
 fn test_sfen() {
-    assert_eq!(Board::EMPTY.to_sfen(), "9/9/9/9/9/9/9/9/9 b - 0");
+    assert_eq!(Board::<()>::EMPTY.to_sfen(), "9/9/9/9/9/9/9/9/9 b - 0");
     macro_rules! test {
         ($sfen: expr) => {
-            assert_eq!(Board::from_sfen($sfen).unwrap().to_sfen(), $sfen);
+            assert_eq!(Board::<()>::from_sfen($sfen).unwrap().to_sfen(), $sfen);
         };
     }
     test!(INITIAL_SFEN);
