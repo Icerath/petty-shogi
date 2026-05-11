@@ -9,6 +9,7 @@ repository = "https://github.com/Icerath/petty-shogi"
 [lints.clippy]
 pedantic = { level = "warn", priority = -1 }
 cast_precision_loss = "allow"
+manual_checked_ops = "allow"
 
 [dependencies]
 atoi = "2.0.0"
