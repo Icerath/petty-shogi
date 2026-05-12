@@ -122,13 +122,19 @@ impl Engine {
         }
     }
 
-    fn go(&self, go: GoCommand) {
+    fn go(&mut self, go: GoCommand) {
         if *self.wait.0.lock().unwrap() {
             self.recv(Response::Error(
                 "you must stop the previous go command before calling go again".into(),
             ));
             return;
         }
+
+        // if the tt has been allocated yet, allocate it
+        if self.ttable.capacity() == 0 {
+            self.ttable = TTable::from_mb(DEFAULT_TT_SIZE_MB);
+        }
+
         let mut engine = Self {
             position: self.position.clone(),
             search: self.search.clone(),
@@ -141,11 +147,6 @@ impl Engine {
     }
 
     fn go_blocking(&mut self, go: &GoCommand) {
-        // if the tt has been allocated yet, allocate it
-        if self.ttable.capacity() == 0 {
-            self.ttable = TTable::from_mb(DEFAULT_TT_SIZE_MB);
-        }
-
         *self.wait.0.lock().unwrap() = true;
         self.stop.reset();
         if let Some(time) = go.movetime {
