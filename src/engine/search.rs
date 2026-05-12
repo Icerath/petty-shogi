@@ -12,12 +12,16 @@ pub struct Search {
     pub killer: Vec<Option<Move>>,
     pub fail_high: u64,
     pub fail_high_test: u64,
+    pub is_pv: bool,
+    pub prev_pv: Vec<Move>,
+    pub current_line: Vec<Move>,
 }
 
 impl Engine {
     pub fn search_root(&mut self, board: &mut Board, depth: u32, line: &mut Vec<Move>) -> Score {
         self.search.killer.clear();
         self.search.killer.extend([None; 64]);
+        self.search.is_pv = true;
 
         self.search(-Score::MAX, Score::MAX, board, depth, &mut NormalSearch { line })
     }
@@ -56,14 +60,22 @@ impl Engine {
             tt_move = entry.mov;
         }
 
-        if self.stop.is_stop() {
-            return Score(0);
-        }
+        let is_pv = self.search.is_pv;
+        let pv_move = if !kind.captures_only()
+            && is_pv
+            && let Some(mov) = self.search.prev_pv.get(self.search.depth_from_root as usize)
+            && self.search.prev_pv[..self.search.depth_from_root as usize]
+                == self.search.current_line
+        {
+            Some(*mov)
+        } else {
+            None
+        };
 
         let line_len = kind.line().map_or(0, |line| line.len());
 
         // null move pruning
-        if !kind.captures_only() && depth > 3 && !board.is_check() {
+        if !kind.captures_only() && depth > 3 && !board.is_check() && pv_move.is_none() {
             board.switch_side();
             self.search.depth_from_root += 1;
             let score = -self.search(-beta, -alpha, board, depth / 3, kind);
@@ -92,16 +104,28 @@ impl Engine {
 
         let mut move_count = 0;
         let mut best_line = vec![];
-        let mut movelist = MoveList::new();
+        let mut movelist = MoveList::default();
+        let mut killer_move = (!kind.captures_only())
+            .then(|| self.search.killer[self.search.depth_from_root as usize])
+            .flatten();
+
+        if killer_move.is_some() && killer_move == pv_move || killer_move == tt_move {
+            killer_move = None;
+        }
+        if tt_move.is_some() && tt_move == pv_move {
+            tt_move = None;
+        }
         while let Some(mov) = movelist.next(
             board,
             kind.captures_only(),
             tt_move,
-            (!kind.captures_only())
-                .then(|| self.search.killer[self.search.depth_from_root as usize])
-                .flatten(),
+            killer_move,
+            pv_move,
             super::move_ordering::order(board),
         ) {
+            if self.stop.is_stop() {
+                return Score(0);
+            }
             let mut board = board.clone();
             board.play(mov);
             if !board.was_legal(mov) {
@@ -123,19 +147,17 @@ impl Engine {
             }
 
             self.search.depth_from_root += 1;
+            self.search.current_line.push(mov);
             let mut score = -self.search(-beta, -alpha, &mut board, next_depth, kind).step();
-            self.search.depth_from_root -= 1;
-
-            if self.stop.is_stop() {
-                return score;
-            }
-
             // repeat search if late move reduction search fails high
             if !kind.captures_only() && score >= beta && late_move_reduction() {
-                self.search.depth_from_root += 1;
+                if let Some(line) = kind.line() {
+                    line.truncate(line_len);
+                }
                 score = -self.search(-beta, -alpha, &mut board, next_depth + 1, kind).step();
-                self.search.depth_from_root -= 1;
             }
+            self.search.current_line.pop();
+            self.search.depth_from_root -= 1;
 
             if let Some(line) = kind.line() {
                 if score > best_score {
@@ -161,7 +183,9 @@ impl Engine {
                 }
                 break;
             }
+            self.search.is_pv = false;
         }
+        self.search.is_pv = is_pv;
 
         if move_count == 0 {
             return best_score;

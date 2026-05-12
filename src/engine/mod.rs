@@ -164,10 +164,13 @@ impl Engine {
         self.search = Search::default();
 
         let start = Instant::now();
-        let mut complete_line = vec![];
+        let mut line = vec![];
+        let mut best_move = None;
         for depth in 1..=max_depth {
+            best_move = line.first().copied();
             self.search.max_seldepth = 0;
-            let mut line = vec![];
+            self.search.prev_pv.clone_from(&line);
+            line.clear();
             let score = self.search_root(&mut self.position.clone(), depth, &mut line);
             if self.stop.is_stop() {
                 break;
@@ -188,12 +191,11 @@ impl Engine {
                     (self.search.fail_high * 1000 / self.search.fail_high_test) as f64 / 10.0
                 )));
             }
-            complete_line = line;
             if score.mate().is_some() {
                 break;
             }
         }
-        if let Some(&best_move) = complete_line.first() {
+        if let Some(best_move) = best_move {
             self.recv(Response::BestMove(BestMove::Move { mov: best_move, ponder: None }));
         } else {
             self.recv(Response::BestMove(BestMove::Resign));

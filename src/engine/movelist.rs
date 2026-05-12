@@ -1,31 +1,35 @@
 use super::{Board, score::Score};
 use crate::Move;
 
+#[derive(Default)]
 pub struct MoveList {
     index: usize,
     moves: Vec<(Move, Score)>,
     state: State,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Default, Clone, Copy, PartialEq, Eq)]
 enum State {
-    HashMove { complete: bool },
+    #[default]
+    Pv,
+    HashMove {
+        complete: bool,
+    },
     GeneratedCaptures,
-    Killer { complete: bool },
+    Killer {
+        complete: bool,
+    },
     GeneratedNonCaptures,
 }
 
 impl MoveList {
-    pub fn new() -> Self {
-        Self { moves: vec![], index: 0, state: State::HashMove { complete: false } }
-    }
-
     pub fn next(
         &mut self,
         board: &Board,
         captures_only: bool,
         tt_move: Option<Move>,
         killer: Option<Move>,
+        pv_move: Option<Move>,
         order: impl Fn(Move) -> Score + Copy,
     ) -> Option<Move> {
         if let Some(mov) = self.next_move() {
@@ -36,6 +40,13 @@ impl MoveList {
                 return Some(mov);
             }
             match self.state {
+                State::Pv => {
+                    self.state = State::HashMove { complete: false };
+                    if let Some(pv_move) = pv_move {
+                        assert!(board.is_legal(pv_move));
+                        break Some(pv_move);
+                    }
+                }
                 State::HashMove { complete: false } => {
                     self.state = State::HashMove { complete: true };
                     if let Some(tt_move) = tt_move
