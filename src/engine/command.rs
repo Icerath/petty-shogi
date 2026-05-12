@@ -10,7 +10,7 @@ pub enum Command {
     Stop,
     PonderHit,
     GameOver(GameOver),
-    /// not part of the USI spec
+    SetOption { name: String, value: Option<String> },
     Display,
     Quit,
 }
@@ -47,7 +47,7 @@ pub enum GameOver {
 impl Command {
     #[must_use]
     pub fn from_usi(str: &str) -> Option<Self> {
-        let mut words = str.split(' ');
+        let mut words = str.split(' ').map(str::trim);
         Some(match words.next()? {
             "usi" => Self::Usi,
             "isready" => Self::IsReady,
@@ -60,6 +60,16 @@ impl Command {
             "stop" => Self::Stop,
             "go" => Self::Go(GoCommand::from_split(words)),
             "display" => Self::Display,
+            "setoption" => {
+                let "name" = words.next()? else { return None };
+                let name = words.next()?;
+                let value = if let Some("value") = words.next() {
+                    Some(words.next()?.to_string())
+                } else {
+                    None
+                };
+                Command::SetOption { name: name.to_string(), value }
+            }
             _ => return None,
         })
     }

@@ -16,13 +16,15 @@ use std::{
 
 use command::{Command, GoCommand, Position};
 use piece_value::PieceValues;
-use response::{BestMove, Info, Response};
+use response::{BestMove, Info, Response, UsiOption, UsiType};
 use score::Score;
 use search::Search;
 use stop::Stop;
 use transposition_table::TTable;
 
 use crate::{Move, board_state::BoardState, zobrist::Zobrist};
+
+pub const DEFAULT_TT_SIZE_MB: usize = 64;
 
 pub struct Engine {
     position: Board,
@@ -41,7 +43,7 @@ impl Default for Engine {
             recv: None,
             wait: Arc::new((Mutex::new(false), Condvar::new())),
             stop: Stop::default(),
-            ttable: TTable::from_bytes(64 * 1024 * 1024),
+            ttable: TTable::from_mb(0),
         }
     }
 }
@@ -56,14 +58,33 @@ impl Engine {
             Command::Usi => {
                 self.recv(Response::Id(response::Id::Name("PettyShogi".into())));
                 self.recv(Response::Id(response::Id::Author("Dorje Gilfillan".into())));
+                self.recv(Response::Option(UsiOption {
+                    name: "USI_HASH".into(),
+                    type_: UsiType::Spin,
+                    default: Some(DEFAULT_TT_SIZE_MB.to_string()),
+                    ..Default::default()
+                }));
                 self.recv(Response::UsiOk);
             }
-            Command::IsReady => self.recv(Response::ReadyOk),
+            Command::IsReady => {
+                if self.ttable.capacity() == 0 {
+                    self.ttable = TTable::from_mb(DEFAULT_TT_SIZE_MB);
+                }
+                self.recv(Response::ReadyOk);
+            }
             Command::Go(go) => self.go(go),
             Command::UsiNewGame => {}
             Command::Position(position, moves) => self.position(position, moves),
             Command::Stop => self.stop(),
             Command::Display => self.recv(Response::Misc(self.position.to_string())),
+            Command::SetOption { name, value } => match &*name {
+                "USI_HASH" => {
+                    let Some(value) = value else { return };
+                    let Ok(value) = value.parse() else { return };
+                    self.ttable = TTable::from_mb(value);
+                }
+                _ => {}
+            },
             command => todo!("{command:?}"),
         }
     }
@@ -120,6 +141,11 @@ impl Engine {
     }
 
     fn go_blocking(&mut self, go: &GoCommand) {
+        // if the tt has been allocated yet, allocate it
+        if self.ttable.capacity() == 0 {
+            self.ttable = TTable::from_mb(DEFAULT_TT_SIZE_MB);
+        }
+
         *self.wait.0.lock().unwrap() = true;
         self.stop.reset();
         if let Some(time) = go.movetime {

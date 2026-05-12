@@ -9,6 +9,7 @@ pub enum Response {
     UsiOk,
     ReadyOk,
     BestMove(BestMove),
+    Option(UsiOption),
     Info(Info),
     // not part of USI, should be printed to stderr instead of stdout
     Error(String),
@@ -16,6 +17,27 @@ pub enum Response {
     Misc(String),
     // not part of USI, should be printed to stderr instead of stdout
     Verbose(String),
+}
+
+#[derive(Debug, Default)]
+pub struct UsiOption {
+    pub name: String,
+    pub type_: UsiType,
+    pub default: Option<String>,
+    pub vars: Vec<String>,   // should only be used with the combo type
+    pub min: Option<String>, // should only be used with the spin type
+    pub max: Option<String>, // should only be used with the spin type
+}
+
+#[derive(Debug, Default)]
+pub enum UsiType {
+    #[default]
+    Check,
+    Spin,
+    Combo,
+    Button,
+    String,
+    Filename,
 }
 
 #[derive(Debug)]
@@ -63,6 +85,7 @@ impl fmt::Display for Response {
             Self::UsiOk => write!(f, "usiok"),
             Self::ReadyOk => write!(f, "readyok"),
             Self::BestMove(best_move) => write!(f, "bestmove {best_move}"),
+            Self::Option(ref option) => write!(f, "option {option}"),
             Self::Info(ref info) => write!(f, "info {info}"),
             Self::Misc(ref string) => write!(f, "{string}"),
             Self::Error(ref error) => write!(f, "{error}"),
@@ -120,5 +143,25 @@ impl fmt::Display for Info {
             }
         }
         Ok(())
+    }
+}
+
+impl fmt::Display for UsiOption {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "name {} type {}", self.name, self.type_)
+    }
+}
+
+impl fmt::Display for UsiType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let str = match self {
+            Self::Check => "check",
+            Self::Spin => "spin",
+            Self::Combo => "combo",
+            Self::Button => "button",
+            Self::String => "string",
+            Self::Filename => "filename",
+        };
+        f.write_str(str)
     }
 }

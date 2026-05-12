@@ -15,8 +15,12 @@ pub struct TTable {
 }
 
 impl TTable {
-    pub fn from_bytes(bytes: usize) -> Self {
-        Self { raw: raw::TTable::from_bytes(bytes), len: Arc::new(AtomicUsize::new(0)) }
+    pub fn from_mb(mb: usize) -> Self {
+        Self { raw: raw::TTable::from_bytes(mb * 1024 * 1024), len: Arc::new(AtomicUsize::new(0)) }
+    }
+
+    pub fn capacity(&self) -> usize {
+        self.raw.capacity()
     }
 
     #[must_use]
