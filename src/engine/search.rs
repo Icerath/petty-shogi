@@ -1,6 +1,6 @@
 use super::{Board, Engine, Score};
 use crate::{
-    Move, Side,
+    Bitboard, Move, Side,
     engine::{movelist::MoveList, transposition_table::Nodetype},
 };
 
@@ -222,9 +222,15 @@ impl Engine {
         for side in Side::ALL {
             let mut sum = 0;
             {
-                let mut board = board.without_state().clone();
-                board.active = side;
-                sum += board.pseudolegal_moves_all(board[side], 0i32) * 5;
+                let protected_squares = {
+                    let mut board = board.without_state().clone();
+                    board.active = side;
+                    board.pseudolegal_moves_all(Bitboard::FULL, Bitboard::EMPTY)
+                };
+                sum -= i32::from((board[side] & !protected_squares).count()) * 10;
+                sum -= i32::from(
+                    ((!side).promotion_zone() & !protected_squares & !board[side]).count(),
+                ) * 10;
             }
             sum_both += if side == Side::Sente { sum } else { -sum };
         }
