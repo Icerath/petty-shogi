@@ -32,21 +32,17 @@ impl Engine {
         kind: &mut K,
     ) -> Score {
         self.search.max_seldepth = self.search.max_seldepth.max(self.search.depth_from_root);
+        debug_assert!(alpha <= beta);
+        let alpha_orig = alpha;
+
         if depth == 0 {
             if kind.captures_only() {
                 return self.shallow_eval(board);
             }
             return self.search(alpha, beta, board, u32::MAX, &mut CapturesOnly);
         }
-        assert!(alpha <= beta);
-        if self.stop.is_stop() {
-            return Score(0);
-        }
-
-        let alpha_orig = alpha;
 
         let mut tt_move = None;
-
         if !kind.captures_only()
             && self.search.depth_from_root > 0
             && let Some(entry) = self.ttable.get(board.state.zobrist)
@@ -58,6 +54,10 @@ impl Engine {
                 return score;
             }
             tt_move = entry.mov;
+        }
+
+        if self.stop.is_stop() {
+            return Score(0);
         }
 
         let line_len = kind.line().map_or(0, |line| line.len());
