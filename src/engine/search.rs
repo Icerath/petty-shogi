@@ -130,9 +130,11 @@ impl Engine {
                 return score;
             }
 
+            // repeat search if late move reduction search fails high
             if !kind.captures_only() && score >= beta && late_move_reduction() {
-                // repeat search if late move reduction search fails high
+                self.search.depth_from_root += 1;
                 score = -self.search(-beta, -alpha, &mut board, next_depth + 1, kind).step();
+                self.search.depth_from_root -= 1;
             }
 
             if let Some(line) = kind.line() {
