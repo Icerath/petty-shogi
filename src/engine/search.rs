@@ -234,7 +234,11 @@ impl Engine {
             }
             sum_both += if side == Side::Sente { sum } else { -sum };
         }
-        board.state.piece_values.0 + sum_both
+        let initiative = match board.active {
+            Side::Sente => 5,
+            Side::Gote => -5,
+        };
+        board.state.piece_values.0 + sum_both + initiative
     }
 }
 
