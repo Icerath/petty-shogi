@@ -1,4 +1,4 @@
-use std::fmt;
+use std::fmt::{self, Write};
 
 use crate::{Bitboard, Side};
 
@@ -282,6 +282,12 @@ impl Rank {
 impl fmt::Display for Rank {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         (Self::SYMBOLS[*self] as char).fmt(f)
+    }
+}
+
+impl fmt::Display for File {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_char((9 - *self as u8 + b'0') as char)
     }
 }
 
