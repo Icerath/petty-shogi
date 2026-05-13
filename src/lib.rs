@@ -19,6 +19,7 @@ pub use board::{Board, Hand};
 pub use engine::{Engine, command, response};
 pub use r#move::Move;
 pub use piece::{Piece, PieceKind};
+pub use sfen::STARTING_SFEN;
 pub use side::Side;
 pub use square::{File, Rank, Square};
 

@@ -4,13 +4,13 @@ use std::io::Write as _;
 
 use crate::{Board, File, Piece, PieceKind, Rank, Side, Square, board_state::BoardState};
 
-pub const INITIAL_SFEN: &str = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1";
+pub const STARTING_SFEN: &str = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1";
 
 impl<S: BoardState> Board<S> {
     #[expect(clippy::missing_panics_doc)]
     #[must_use]
     pub fn start_pos() -> Self {
-        Self::from_sfen(INITIAL_SFEN).expect("the starting fen should be valid")
+        Self::from_sfen(STARTING_SFEN).expect("the starting fen should be valid")
     }
 
     pub fn from_sfen(sfen: impl AsRef<[u8]>) -> Option<Self> {
@@ -164,6 +164,6 @@ fn test_sfen() {
             assert_eq!(Board::<()>::from_sfen($sfen).unwrap().to_sfen(), $sfen);
         };
     }
-    test!(INITIAL_SFEN);
+    test!(STARTING_SFEN);
     test!("+P3kgsnl/3sg2b1/4pp3/+R7p/3LP1p2/3K1PP2/P1PP4P/3b5/6+rNL w N5P2g2snlp 50");
 }
