@@ -168,7 +168,6 @@ impl Engine {
         let mut line = vec![];
         let mut best_move = None;
         for depth in 1..=max_depth {
-            best_move = line.first().copied();
             self.search.max_seldepth = 0;
             self.search.prev_pv.clone_from(&line);
             line.clear();
@@ -176,6 +175,7 @@ impl Engine {
             if self.stop.is_stop() {
                 break;
             }
+            best_move = line.first().copied();
             self.recv(Response::Info(
                 Info::default()
                     .depth(depth)
