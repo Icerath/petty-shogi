@@ -135,13 +135,13 @@ impl Engine {
 
             let mut next_depth = depth - 1;
 
-            let late_move_reduction = || depth > 2 && move_count >= 2;
+            let late_move_reduction = depth > 2 && move_count >= 2;
 
             if !kind.captures_only() {
                 if board.is_check() {
                     next_depth += 1;
                 }
-                if late_move_reduction() {
+                if late_move_reduction {
                     next_depth -= 1;
                 }
             }
@@ -150,7 +150,7 @@ impl Engine {
             self.search.current_line.push(mov);
             let mut score = -self.search(-beta, -alpha, &mut board, next_depth, kind).step();
             // repeat search if late move reduction search fails high
-            if !kind.captures_only() && score >= beta && late_move_reduction() {
+            if !kind.captures_only() && score >= beta && late_move_reduction {
                 if let Some(line) = kind.line() {
                     line.truncate(line_len);
                 }
